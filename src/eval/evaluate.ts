@@ -60,8 +60,8 @@ export async function evaluate(
   exp: AST,
   env: Environment,
   pid: number,
-  onExit: (code: number) => void,
-  _path: string
+  _path: string,
+  onExit = (code: number): void => void 0
 ): Promise<any> {
   // async function syncAsyncLoop(loop: () => void | Promise<void>, cond: () => boolean | Promise<boolean>) {
   //   return new Promise<void>((resolve) => {
@@ -131,12 +131,19 @@ export async function evaluate(
     return typeof exp == "object" && exp && "type" in exp;
   }
 
+  function buildPath(file: string, path: string) {
+    return file.startsWith("/") ? file + ".prgm" : `${path}/${file}.prgm`;
+  }
+
   async function _import(exp: Types["import"], env: Environment, path = _path) {
-    const ast = parse(
-      await (
-        await fetch(exp.value.value.startsWith("/") ? "prgm" + exp.value.value + ".prgm" : `${path}/${exp.value.value}.prgm`)
-      ).text()
-    );
+    let code = "";
+    while (path.startsWith("//")) path = path.slice(1);
+    let builtPath = buildPath(exp.value.value, path);
+    console.log(builtPath);
+    if (builtPath.startsWith("/std/")) {
+      code = await (await fetch(require("../standardLibrary/" + builtPath.split("/").splice(2).join("/")))).text();
+    } else code = await (await fetch(builtPath)).text();
+    const ast = parse(code);
     let newPath = exp.value.value.split("/").slice(0, -1).join("/");
     if (!newPath.startsWith("/")) newPath = "/" + newPath;
     // console.log(ast);
@@ -413,11 +420,11 @@ export async function evaluate(
       type: "import",
       value: {
         type: "str",
-        value: "/utils/String"
+        value: "/std/String"
       }
     },
     env,
-    _path
+    "/"
   );
   env.def("exit", (code?: number) => {
     for (const loop of asyncWhileLoops) {

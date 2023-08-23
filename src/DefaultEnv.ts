@@ -13,13 +13,24 @@ export function defaultEnv() {
   res.def("now", () => {
     return performance.now();
   });
+
   return res;
+}
+
+async function println(...data: any[]) {
+  let res = [];
+
+  for (const v of data) {
+    res.push(typeof v == "object" && v && v.__isString__ === true ? await v.toString() : v);
+  }
+
+  console.log(...res);
 }
 
 export function evalNewEnv(
   prgm: string | AST,
-  pid: number,
-  path: string,
+  path = "/",
+  pid?: number,
   beforeExecution?: (env: Environment) => void,
   onExit = (code: number) => {}
 ) {
@@ -27,5 +38,9 @@ export function evalNewEnv(
   let prog = typeof prgm == "string" ? parse(prgm) : prgm;
   if (beforeExecution) beforeExecution(globalEnv);
   console.log(prog);
-  return evaluate(prog, globalEnv, pid, onExit, path);
+
+  if (pid == undefined) {
+    globalEnv.def("println", println);
+  }
+  return evaluate(prog, globalEnv, pid ?? 0, path, onExit);
 }
