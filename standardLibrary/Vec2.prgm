@@ -1,0 +1,47 @@
+class Vec2 {
+  x = 0;
+  y = 0;
+
+  constructor(x, y) {
+    this.x = x;
+    this.y = x;
+  }
+
+  operator +=(other) {
+    this.x += other.x;
+    this.y += other.y;
+    this;
+  }
+
+  operator -=(other) {
+    this.x -= other.x;
+    this.y -= other.y;
+    this;
+  }
+
+  operator *=(other) {
+    this.x *= other.x;
+    this.y *= other.y;
+    this;
+  }
+
+  operator /=(other) {
+    this.x /= other.x;
+    this.y /= other.y;
+    this;
+  }
+
+  operator =(other) {
+    this.x = other.x;
+    this.y = other.y;
+    this;
+  }
+
+  clone() {
+    Vec2(this.x, this.y);
+  }
+
+  toString() {
+    "(" + this.x + ", " + this.y + ")";
+  }
+}

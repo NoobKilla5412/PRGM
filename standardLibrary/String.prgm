@@ -1,0 +1,52 @@
+import "Array";
+
+class String {
+  __isString__ = true;
+
+  constructor(value = '') {
+    function valueIn() {
+      __in((__array('v', 'a', 'l', 'u', 'e')).join(''), value);
+    }
+    if (__typeof(value) == (__array('n', 'u', 'm', 'b', 'e', 'r')).join('')) {
+      this.value = (value.toString()).split('');
+    } else if (__typeof(value) == (__array('o', 'b', 'j', 'e', 'c', 't')).join('') && !valueIn()) {
+      this.value = value;
+    } else if (valueIn()) {
+      this.value = value.value;
+    } else {
+      this.value = __array();
+    }
+  }
+
+  operator +=(str) {
+    this.value = (this + str).value;
+  }
+
+  operator +(str) {
+    String(this.value.concat(String(str).value));
+  }
+
+  operator ==(str) {
+    this.toString() == str.toString();
+  }
+
+  operator !=(str) {
+    !(this == str);
+  }
+
+  toString() {
+    this.value.join('');
+  }
+
+  split(separator) {
+    val = this.toString();
+    arr = val.split(separator.toString());
+    res = Array();
+    i = 0;
+    while (i < arr.length) {
+      res.push(arr.at(i));
+      i += 1;
+    }
+    res;
+  }
+}

@@ -1,0 +1,47 @@
+import "utils/Array";
+
+class Map {
+  array = Array();
+
+  set(key, value) {
+    if (this.get(key) == null) {
+      # This element does not exist, so we can just add it to the array.
+      _arr = Array();
+      _arr.push(key);
+      _arr.push(value);
+      this.array.push(_arr);
+    } else {
+      # This element exists, so we need to update its value.
+      this.array.forEach(function (_value) {
+        if (_value.get(0) == key) {
+          _value.set(1, value);
+        };
+      });
+    }
+  }
+
+  get(key) {
+    res = null;
+    
+    this.array.forEach(function (value) {
+      if (value.get(0) == key) {
+        res = value.get(1);
+      };
+    });
+
+    res;
+  }
+
+  toString() {
+    str = "";
+
+    len = this.array.length();
+
+    this.array.forEach(function (val, i) {
+      str += val.join(" => ");
+      if (i != len - 1) then str += "\n";
+    });
+
+    str;
+  }
+}

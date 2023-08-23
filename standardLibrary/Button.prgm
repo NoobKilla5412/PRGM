@@ -1,0 +1,28 @@
+import "Rect";
+import "Array";
+
+class Button extends Rect {
+  static g = null;
+  action = null;
+  static window = null;
+
+  constructor(x, y, w, h, action) {
+    super(x, y, w, h);
+    # this.action = action;
+    # Button.window.buttons.push(this);
+  }
+
+  draw() {
+    if (Button.g == null) then Button.g = Button.window.getGraphics();
+    # Button.g.fillRect(this.x, this.y, this.w, this.h);
+  }
+
+  static init(window) {
+    window.buttons = Array();
+    # this.window = window;
+
+    listen("click", function (e) {
+      println(e);
+    }, window);
+  }
+}

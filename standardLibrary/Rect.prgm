@@ -1,0 +1,12 @@
+import "Point";
+
+class Rect extends Point {
+  w = 0;
+  h = 0;
+
+  constructor(x, y, w, h) {
+    super(x, y);
+    this.w = w;
+    this.h = h;
+  }
+}

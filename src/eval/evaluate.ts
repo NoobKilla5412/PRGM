@@ -141,7 +141,7 @@ export async function evaluate(
     let builtPath = buildPath(exp.value.value, path);
     console.log(builtPath);
     if (builtPath.startsWith("/std/")) {
-      code = await (await fetch(require("../standardLibrary/" + builtPath.split("/").splice(2).join("/")))).text();
+      code = await (await fetch(require("../../standardLibrary/" + builtPath.split("/").splice(2).join("/")))).text();
     } else code = await (await fetch(builtPath)).text();
     const ast = parse(code);
     let newPath = exp.value.value.split("/").slice(0, -1).join("/");

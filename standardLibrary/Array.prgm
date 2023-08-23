@@ -1,0 +1,130 @@
+class Node {
+  constructor(value = null) {
+    this.value = value;
+  }
+
+  next = null;
+};
+
+class Array {
+  head = null;
+
+  push(value) {
+    node = Node(value);
+    if (this.head != null) {
+      current = this.head;
+      while (current.next != null) {
+        current = current.next;
+      };
+      current.next = node;
+    } else {
+      this.head = node;
+    };
+  }
+
+  length() {
+    len = 0;
+
+    this.forEach(function () len += 1);
+
+    len;
+  }
+
+  toString() {
+    this.join(",");
+  }
+
+  join(separator) {
+    str = "";
+
+    len = this.length();
+   
+    this.forEach(function (value, i) {
+      str += value;
+      if (i != len - 1) then str += separator;
+    });
+
+    str;
+  }
+
+  at(index) {
+    res = null;
+    current = Node();
+    if (index != 0 && this.head != null) {
+      current = this.head;
+      i = 0;
+      while ((if current != null then current.next != null) && i != index) {
+        current = current.next;
+        i += 1;
+      };
+    };
+    res = current.value;
+    if (index == 0) then res = this.head.value;
+    res;
+  }
+
+  set(index, value) {
+    res = null;
+    if (this.head != null) {
+      current = this.head;
+      i = 0;
+      while ((if current != null then current.next != null) && i != index) {
+        current = current.next;
+        i += 1;
+      };
+      current.value = value;
+    } else this.head = Node(value);
+  }
+
+  forEach(cb) {
+    if (this.head != null) {
+      current = this.head;
+      i = 0;
+      do {
+        cb(current.value, i, this);
+        current = current.next;
+        i += 1;
+      } while ((if current != null then current.next != null));
+      if (if current != null then current.value != null) {
+        cb(current.value, i, this);
+      }
+    }
+  }
+
+  operator ==(other) {
+    res = true;
+    if (this.length() == other.length()) {
+      this.forEach(function (value, i) {
+        if (value != other.at(i)) then res = false;
+      });
+    } else res = false;
+
+    res;
+  }
+  
+  # operator [](i) {
+  #   this.at(i);
+  # }
+
+  # remove(value) {
+  #   currentNode = this.head;
+  #   previousNode = null;
+  #   running = true;
+  #   while (currentNode != null && running) {
+  #     if (currentNode.value == value) {
+  #       if (previousNode == null) {
+  #         this.head = currentNode.next;
+  #       } else {
+  #         previousNode.next = currentNode.next;
+  #       };
+  #       running = false;
+  #     };
+  #     previousNode = currentNode;
+  #     currentNode = currentNode.next;
+  #   }
+  # };
+
+  # pop() {
+  #   this.tail.next = null;
+  # };
+}
