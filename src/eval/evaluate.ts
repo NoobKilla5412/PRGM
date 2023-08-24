@@ -292,10 +292,9 @@ export async function evaluate(
 
       let instance = <PRGM_Class>Object.create(null);
       if (exp.extendsName) {
-        debugger;
         bodyScope.def("super", async (...args: any[]) => {
           if (exp.extendsName) {
-            instance = await env.get(exp.extendsName)(...args);
+            instance = Object.assign(instance, await env.get(exp.extendsName)(...args));
             bodyScope.def("this", instance);
           }
         });
@@ -360,6 +359,7 @@ export async function evaluate(
           case "operator":
             instance[classOperators] = instance[classOperators] || {};
             instance[classOperators][element.op] = await main(element.value, bodyScope, path);
+            break;
         }
       }
 
