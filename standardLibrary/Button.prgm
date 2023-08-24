@@ -1,5 +1,5 @@
-import "Rect";
-import "Array";
+import "/std/Rect";
+import "/std/Array";
 
 class Button extends Rect {
   static g = null;

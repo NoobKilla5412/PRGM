@@ -1,4 +1,4 @@
-import "Point";
+import "/std/Point";
 
 class Rect extends Point {
   w = 0;

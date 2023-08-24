@@ -1,4 +1,4 @@
-import "Array";
+import "/std/Array";
 
 class String {
   __isString__ = true;

@@ -1,4 +1,4 @@
-import "utils/Array";
+import "/std/Array";
 
 class Map {
   array = Array();
