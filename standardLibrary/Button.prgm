@@ -5,24 +5,33 @@ class Button extends Rect {
   static g = null;
   action = null;
   static window = null;
+  props = null;
 
-  constructor(x, y, w, h, action) {
+  constructor(x, y, w, h, action, props = object {}) {
     super(x, y, w, h);
-    # this.action = action;
-    # Button.window.buttons.push(this);
+    this.action = action;
+    this.props = props;
+    Button.window.buttons.push(this);
   }
 
   draw() {
-    if (Button.g == null) then Button.g = Button.window.getGraphics();
-    # Button.g.fillRect(this.x, this.y, this.w, this.h);
+    if (Button.g == null) then Button.g = (Button.window).getGraphics();
+    if (this.props.color) then Button.g.fillStyle = this.props.color;
+    else Button.g.fillStyle = "black";
+    Button.g.fillRect(this.x, this.y, this.w, this.h);
   }
 
   static init(window) {
     window.buttons = Array();
-    # this.window = window;
+    this.window = window;
 
     listen("click", function (e) {
-      println(e);
+      this.window.buttons.forEach(function (button) {
+        if (e.x >= button.x && e.x <= button.x + button.w &&
+            e.y >= button.y && e.y <= button.y + button.h) {
+          if (button.action != null) then button.action();
+        }
+      });
     }, window);
   }
 }

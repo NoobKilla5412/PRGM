@@ -263,6 +263,7 @@ export function parse(str: string, testingFlag = false): Types["prog"] {
       cond: cond,
       then: then
     };
+    if (is_punc(";")) input.next();
     if (is_kw("else")) {
       input.next();
       ret.else = parse_expression();

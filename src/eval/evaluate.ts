@@ -88,18 +88,28 @@ export async function evaluate(
       } else throwGood(new SyntaxError("Syntax error"));
     }
 
-    let tmp = await collapseDotOp(exp, env, path);
+    const applyVar = (target: any, var_: AST): any => {
+      if (var_.type == "binary" && var_.left.type == "var") {
+        return applyVar(target[var_.left.value], var_.right);
+      } else if (var_.type == "var") {
+        return [target, target[var_.value]];
+      }
+      return null;
+    };
 
-    const target = tmp ?? (await main(exp.left, env, path));
-    let value = "";
-    if (tmp && exp.right.type == "binary" && exp.right.right.type == "var") value = exp.right.right.value;
-    else if (exp.right.type == "var") value = exp.right.value;
+    // let tmp = await collapseDotOp(exp, env, path);
 
-    if (target == undefined) {
-      throwGood(new TypeError(`Cannot read properties of undefined (reading '${value}')`));
-      return false;
-    }
-    let res = target[value];
+    // const target = tmp ?? (await main(exp.left, env, path));
+    // let value = "";
+    // if (tmp && exp.right.type == "binary" && exp.right.right.type == "var") value = exp.right.right.value;
+    // else if (exp.right.type == "var") value = exp.right.value;
+
+    // if (target == undefined) {
+    //   throwGood(new TypeError(`Cannot read properties of undefined (reading '${value}')`));
+    //   return false;
+    // }
+    // let res = target[value];
+    let [target, res] = applyVar(await main(exp.left, env, path), exp.right);
     if (res === undefined) res = null;
     if (typeof res == "function") res = res.bind(target);
     return res;
