@@ -111,6 +111,7 @@ export function parse(str: string, testingFlag = false): Types["prog"] {
     "-=": 1,
     "/=": 1,
     "*=": 1,
+    "%=": 1,
 
     "||": 2,
     "&&": 3,

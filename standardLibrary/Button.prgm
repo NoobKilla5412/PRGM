@@ -16,7 +16,7 @@ class Button extends Rect {
 
   draw() {
     if (Button.g == null) then Button.g = (Button.window).getGraphics();
-    if (this.props.color) then Button.g.fillStyle = this.props.color;
+    if (this.props.color != null) then Button.g.fillStyle = this.props.color;
     else Button.g.fillStyle = "black";
     Button.g.fillRect(this.x, this.y, this.w, this.h);
   }

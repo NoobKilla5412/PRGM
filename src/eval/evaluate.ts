@@ -76,6 +76,15 @@ export async function evaluate(
   //   });
   // }
 
+  function applyVar(target: any, var_: AST): [any, any, string] {
+    if (var_.type == "binary" && var_.left.type == "var") {
+      return applyVar(target[var_.left.value], var_.right);
+    } else if (var_.type == "var") {
+      return [target, target[var_.value], var_.value];
+    }
+    throwGood(new TypeError("Invalid dot operator"));
+  }
+
   async function evalDot(env: Environment, exp: Types["binary"], path: string) {
     // if (exp.right.type != "var" && !(exp.right.type == "binary" && exp.operator == "."))
     //   throwGood(new TypeError(`Cannot read property ${JSON.stringify(exp, undefined, 2)}`));
@@ -87,15 +96,6 @@ export async function evaluate(
         return await call(res[exp.right.func.value], exp.right.args, env, path);
       } else throwGood(new SyntaxError("Syntax error"));
     }
-
-    const applyVar = (target: any, var_: AST): any => {
-      if (var_.type == "binary" && var_.left.type == "var") {
-        return applyVar(target[var_.left.value], var_.right);
-      } else if (var_.type == "var") {
-        return [target, target[var_.value]];
-      }
-      return null;
-    };
 
     // let tmp = await collapseDotOp(exp, env, path);
 
@@ -485,23 +485,7 @@ export async function evaluate(
             if (exp.left.type == "var") return env.set(exp.left.value, await main(exp.right, env, path));
             else {
               // This is for assignment to a property of an object (`target`).
-              let tmp = await collapseDotOp(exp, env, path);
-
-              const target = tmp ?? (await main(exp.left.left, env, path));
-              // console.log("exp: ", exp.left);
-              // console.log("target: ", target);
-              let value = "";
-              if (tmp && exp.left.right.type == "binary" && exp.left.right.right.type == "var")
-                value = exp.left.right.right.value;
-              else if (exp.left.right.type == "var") value = exp.left.right.value;
-              // await collapseDotOp(exp, env, testingFlag);
-              // if (exp.left.right.type != "var")
-              //   throwGood(new TypeError(`Cannot read property ${JSON.stringify(exp.left)}`), testingFlag);
-              // const target = await main(exp.left.left, env, testingFlag);
-              if (target == undefined) {
-                throwGood(new TypeError(`(PRGM) Cannot read properties of undefined (reading '${value}')`));
-                return false;
-              }
+              let [target, , value] = applyVar(await main(exp.left.left, env, path), exp.left.right);
               return (target[value] = await main(exp.right, env, path));
             }
           case "+=":

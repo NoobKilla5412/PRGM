@@ -27,7 +27,8 @@ class String {
   }
 
   operator ==(str) {
-    this.toString() == str.toString();
+    if (str == null) then false;
+    else this.toString() == str.toString();
   }
 
   operator !=(str) {
