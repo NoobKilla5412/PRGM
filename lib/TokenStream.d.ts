@@ -13,7 +13,7 @@ export type Token<T extends keyof TokenTypes> = {
     value: TokenTypes[T];
 };
 export declare namespace TokenTypeChecks {
-    function check<T extends keyof TokenTypes>(type: T, tok: Token<keyof TokenTypes> | null): tok is Token<T>;
+    function check<T extends keyof TokenTypes>(type: T, tok: Token<keyof TokenTypes> | undefined): tok is Token<T>;
 }
 export declare class TokenStream {
     private current;
@@ -36,9 +36,9 @@ export declare class TokenStream {
     private read_char;
     private skip_comment;
     private read_next;
-    peek(): Token<keyof TokenTypes> | null;
-    next(): Token<keyof TokenTypes> | null;
+    peek(offset?: number): Token<keyof TokenTypes> | undefined;
+    next(): Token<keyof TokenTypes> | undefined;
     eof(): boolean;
-    croak(msg: string): never;
+    croak(msg: string): Error;
 }
 export {};

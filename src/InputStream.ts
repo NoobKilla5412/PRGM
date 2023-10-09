@@ -5,9 +5,11 @@ export class InputStream {
   private line = 1;
   private col = 0;
   private input: string;
+  private onError: (err: Error) => void;
 
-  public constructor(input: string) {
+  public constructor(input: string, onError = (err: Error) => {}) {
     this.input = input;
+    this.onError = onError;
   }
 
   public next() {
@@ -25,8 +27,11 @@ export class InputStream {
     return this.peek() == "";
   }
 
-  public croak(msg: string): never {
-    throw new Error(`${msg} (${this.line}:${this.col})
-${`${this.input.slice(0, this.pos)}|${this.input.slice(this.pos)}`}`);
+  public croak(msg: string) {
+    let err = new Error(`${msg} (${this.line}:${this.col})
+${"" ?? `${this.input.slice(0, this.pos)}|${this.input.slice(this.pos)}`}`);
+    console.error(err);
+    this.onError(err);
+    return err;
   }
 }

@@ -14,13 +14,13 @@ interface TokenTypes {
 export type Token<T extends keyof TokenTypes> = { type: T; value: TokenTypes[T] };
 
 export namespace TokenTypeChecks {
-  export function check<T extends keyof TokenTypes>(type: T, tok: Token<keyof TokenTypes> | null): tok is Token<T> {
+  export function check<T extends keyof TokenTypes>(type: T, tok: Token<keyof TokenTypes> | undefined): tok is Token<T> {
     return tok && tok.type == type ? true : false;
   }
 }
 
 export class TokenStream {
-  private current: Token<keyof TokenTypes> | null = null;
+  private current: (Token<keyof TokenTypes> | undefined)[] = [];
   private keywords = [
     "if",
     "then",
@@ -131,9 +131,9 @@ export class TokenStream {
     });
     this.input.next();
   }
-  private read_next(): Token<keyof TokenTypes> | null {
+  private read_next(): Token<keyof TokenTypes> | undefined {
     this.read_while(this.is_whitespace);
-    if (this.input.eof()) return null;
+    if (this.input.eof()) return;
     var ch = this.input.peek();
     if (ch == "#") {
       this.skip_comment();
@@ -156,19 +156,26 @@ export class TokenStream {
     this.input.croak(
       `Can't handle character: "${ch}" (Code: ${ch.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")})`
     );
+    return;
   }
-  public peek() {
-    return this.current || (this.current = this.read_next());
+  public peek(offset?: number) {
+    if (offset) {
+      if (this.current.length >= offset) return this.current[offset];
+      while (offset > 0) {
+        this.current.push(this.read_next());
+      }
+      return this.current[offset];
+    }
+    return this.current[0] || (this.current.push(this.read_next()), this.current[0]);
   }
   public next() {
-    var tok = this.current;
-    this.current = null;
+    var tok = this.current.shift();
     return tok || this.read_next();
   }
   public eof() {
     return this.peek() == null;
   }
-  public croak(msg: string): never {
-    this.input.croak(msg);
+  public croak(msg: string) {
+    return this.input.croak(msg);
   }
 }

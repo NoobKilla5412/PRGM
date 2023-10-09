@@ -3,9 +3,10 @@ export declare class InputStream {
     private line;
     private col;
     private input;
-    constructor(input: string);
+    private onError;
+    constructor(input: string, onError?: (err: Error) => void);
     next(): string;
     peek(): string;
     eof(): boolean;
-    croak(msg: string): never;
+    croak(msg: string): Error;
 }

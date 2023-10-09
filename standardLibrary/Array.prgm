@@ -4,7 +4,7 @@ class Node {
   }
 
   next = null;
-};
+}
 
 class Array {
   head = null;
@@ -15,11 +15,11 @@ class Array {
       current = this.head;
       while (current.next != null) {
         current = current.next;
-      };
+      }
       current.next = node;
     } else {
       this.head = node;
-    };
+    }
   }
 
   length() {
@@ -53,11 +53,11 @@ class Array {
     if (index != 0 && this.head != null) {
       current = this.head;
       i = 0;
-      while ((if current != null then current.next != null) && i != index) {
+      while (current.next != null && i != index) {
         current = current.next;
         i += 1;
-      };
-    };
+      }
+    }
     res = current.value;
     if (index == 0) then res = this.head.value;
     res;
@@ -68,10 +68,10 @@ class Array {
     if (this.head != null) {
       current = this.head;
       i = 0;
-      while ((if current != null then current.next != null) && i != index) {
+      while (current.next != null && i != index) {
         current = current.next;
         i += 1;
-      };
+      }
       current.value = value;
     } else this.head = Node(value);
   }
@@ -84,8 +84,8 @@ class Array {
         cb(current.value, i, this);
         current = current.next;
         i += 1;
-      } while ((if current != null then current.next != null));
-      if (if current != null then current.value != null) {
+      } while (current.next != null);
+      if (current.value != null) {
         cb(current.value, i, this);
       }
     }

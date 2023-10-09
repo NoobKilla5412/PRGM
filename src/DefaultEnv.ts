@@ -1,6 +1,6 @@
 import { Environment } from "./eval/Environment";
 import { evaluate } from "./eval/evaluate";
-import { AST, parse } from "./parse";
+import { ASTStatement, parse } from "./parse";
 
 export function defaultEnv() {
   let res = new Environment();
@@ -13,6 +13,7 @@ export function defaultEnv() {
   res.def("now", () => {
     return performance.now();
   });
+  res.def("println", println);
 
   return res;
 }
@@ -28,7 +29,7 @@ async function println(...data: any[]) {
 }
 
 export function evalNewEnv(
-  prgm: string | AST,
+  prgm: string | ASTStatement,
   path = "/",
   pid?: number,
   beforeExecution?: (env: Environment) => void,
@@ -36,11 +37,11 @@ export function evalNewEnv(
 ) {
   let globalEnv = defaultEnv();
   let prog = typeof prgm == "string" ? parse(prgm) : prgm;
-  if (beforeExecution) beforeExecution(globalEnv);
-  console.log(prog);
-
   if (pid == undefined) {
     globalEnv.def("println", println);
   }
+  if (beforeExecution) beforeExecution(globalEnv);
+  // console.log(prog);
+
   return evaluate(prog, globalEnv, pid ?? 0, path, onExit);
 }

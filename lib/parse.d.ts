@@ -1,100 +1,65 @@
 import { Token } from "./TokenStream";
 export interface Argument {
     name: string;
-    default: AST | null;
+    default: ASTExpression | null;
 }
 export interface ClassBody {
     prop: {
         type: "prop";
         static: boolean;
         name: string;
-        value: AST;
+        value: ASTExpression;
     };
     func: {
         type: "func";
         static: boolean;
         name: string;
         vars: Argument[];
-        body: Types["prog"];
+        body: Statements["prog"];
     };
     operator: {
         type: "operator";
         op: string;
-        value: Types["function"];
+        value: Statements["function"];
     };
 }
 export declare namespace ClassUtils {
-    function constructorIndex(obj: Types["class"]): number;
+    function constructorIndex(obj: Statements["class"]): number;
 }
-export interface Types {
+export interface Expressions {
     unary: {
         type: "unary";
         operator: string;
-        body: AST;
+        body: ASTExpression;
     };
     binary: {
         type: "binary";
         operator: string;
-        left: AST;
-        right: AST;
+        left: ASTExpression;
+        right: ASTExpression;
     };
     call: {
         type: "call";
-        func: AST;
-        args: AST[];
+        func: ASTExpression;
+        args: ASTExpression[];
     };
-    prog: {
-        type: "prog";
-        prog: AST[];
-    };
-    if: {
-        type: "if";
-        cond: AST;
-        then: AST;
-        else?: AST;
-    };
-    do: {
-        type: "do";
-        cond: AST;
-        body: AST;
-    };
-    _while: {
-        type: "_while";
-        cond: AST;
-        body: AST;
-        else?: AST;
-    };
-    while: {
-        type: "while";
-        cond: AST;
-        body: AST;
-        else?: AST;
-    };
-    function: {
-        type: "function";
+    functionExpr: {
+        type: "functionExpr";
         name?: string;
         vars: Argument[];
-        body: AST;
+        body: ASTStatement;
     };
-    object: {
-        type: "object";
-        data: {
-            [key: string]: AST;
-        };
-    };
-    class: {
-        type: "class";
+    classExpr: {
+        type: "classExpr";
         name?: string;
         extendsName: string | null;
         body: ClassBody[keyof ClassBody][];
     };
-    import: {
-        type: "import";
-        value: Types["str"];
-    };
-    export: {
-        type: "export";
-        value: AST;
+    object: {
+        type: "object";
+        data: {
+            [key: string]: ASTExpression;
+        };
     };
     null: {
         type: "null";
@@ -108,5 +73,56 @@ export interface Types {
     str: Token<"str">;
     char: Token<"char">;
 }
-export type AST = Types[keyof Types];
-export declare function parse(str: string, testingFlag?: boolean): Types["prog"];
+export interface Statements {
+    statementExpr: {
+        type: "statementExpr";
+        expr: Expressions[keyof Expressions];
+    };
+    prog: {
+        type: "prog";
+        prog: ASTStatement[];
+    };
+    if: {
+        type: "if";
+        cond: ASTExpression;
+        then: ASTStatement;
+        else?: ASTStatement;
+    };
+    do: {
+        type: "do";
+        cond: ASTExpression;
+        body: ASTStatement;
+    };
+    _while: {
+        type: "_while";
+        cond: ASTExpression;
+        body: ASTStatement;
+        else?: ASTStatement;
+    };
+    while: {
+        type: "while";
+        cond: ASTExpression;
+        body: ASTStatement;
+        else?: ASTStatement;
+    };
+    function: {
+        type: "function";
+        name: string;
+        vars: Argument[];
+        body: ASTStatement;
+    };
+    class: {
+        type: "class";
+        name: string;
+        extendsName: string | null;
+        body: ClassBody[keyof ClassBody][];
+    };
+    import: {
+        type: "import";
+        value: Expressions["str"];
+    };
+}
+export declare function convertToStatement(expr: ASTExpression): Statements["statementExpr"];
+export type ASTStatement = Statements[keyof Statements];
+export type ASTExpression = Expressions[keyof Expressions];
+export declare function parse(str: string, onError?: (err: Error) => void, testingFlag?: boolean): Statements["prog"];

@@ -1,5 +1,15 @@
 /* eslint-disable */
-import { AST, Argument, ClassBody, ClassUtils, Types, parse } from "../parse";
+import {
+  ASTExpression,
+  ASTStatement,
+  Argument,
+  ClassBody,
+  ClassUtils,
+  Expressions,
+  Statements,
+  convertToStatement,
+  parse
+} from "../parse";
 import { useUtils } from "../utils";
 import { Environment } from "./Environment";
 
@@ -15,9 +25,6 @@ useUtils();
 // }
 
 // @ts-ignore
-function throwGood(error: Error): never {
-  throw error;
-}
 
 // async function awaitDeletion(array: any[], element: any) {
 //   return new Promise<void>((resolve) => {
@@ -57,11 +64,12 @@ interface PRGM_Class {
 }
 
 export async function evaluate(
-  exp: AST,
+  exp: ASTStatement,
   env: Environment,
   pid: number,
   _path: string,
-  onExit = (code: number): void => void 0
+  onExit = (code: number) => {},
+  onError = (err: Error) => {}
 ): Promise<any> {
   // async function syncAsyncLoop(loop: () => void | Promise<void>, cond: () => boolean | Promise<boolean>) {
   //   return new Promise<void>((resolve) => {
@@ -76,22 +84,35 @@ export async function evaluate(
   //   });
   // }
 
-  function applyVar(target: any, var_: AST): [any, any, string] {
+  function throwGood(error: Error) {
+    onError(error);
+    console.error(error);
+    return error;
+  }
+
+  /**
+   * Dot operator
+   * @param target the var to dot operator the var_
+   * @param var_ The property
+   * @returns The property value
+   */
+  function applyVar(target: any, var_: ASTExpression): [any, any, string] {
     if (var_.type == "binary" && var_.left.type == "var") {
       return applyVar(target[var_.left.value], var_.right);
     } else if (var_.type == "var") {
       return [target, target[var_.value], var_.value];
     }
     throwGood(new TypeError("Invalid dot operator"));
+    return [{}, null, ""];
   }
 
-  async function evalDot(env: Environment, exp: Types["binary"], path: string) {
+  async function evalDot(env: Environment, exp: Expressions["binary"], path: string) {
     // if (exp.right.type != "var" && !(exp.right.type == "binary" && exp.operator == "."))
     //   throwGood(new TypeError(`Cannot read property ${JSON.stringify(exp, undefined, 2)}`));
     // if (exp.left.type == "call") exp.left = await evaluate(exp.left, env, testingFlag);
 
     if (exp.left.type == "call" && exp.right.type == "call") {
-      let res = await main(exp.left, env, path);
+      let res = await mainExp(exp.left, env, path);
       if (exp.right.func.type == "var") {
         return await call(res[exp.right.func.value], exp.right.args, env, path);
       } else throwGood(new SyntaxError("Syntax error"));
@@ -109,50 +130,67 @@ export async function evaluate(
     //   return false;
     // }
     // let res = target[value];
-    let [target, res] = applyVar(await main(exp.left, env, path), exp.right);
+    let [target, res] = applyVar(await mainExp(exp.left, env, path), exp.right);
     if (res === undefined) res = null;
     if (typeof res == "function") res = res.bind(target);
     return res;
   }
 
-  function getName(exp: AST): string | undefined {
-    switch (exp.type) {
-      case "function":
-        return exp.name;
-      case "call":
-        return getName(exp.func);
-      case "class":
-        return exp.name;
-      case "binary":
-        if (exp.operator == "=") {
-          return getName(exp.left);
-        }
-        return undefined;
-      case "null":
-        return "null";
-      case "var":
-        return exp.value;
-      default:
-        return undefined;
-    }
-  }
+  // function getName(exp: ASTStatement): string | undefined {
+  //   switch (exp.type) {
+  //     case "function":
+  //       return exp.name;
+  //     case "call":
+  //       return getName(exp.func);
+  //     case "class":
+  //       return exp.name;
+  //     case "binary":
+  //       if (exp.operator == "=") {
+  //         return getName(exp.left);
+  //       }
+  //       return undefined;
+  //     case "null":
+  //       return "null";
+  //     case "var":
+  //       return exp.value;
+  //     default:
+  //       return undefined;
+  //   }
+  // }
 
-  function isAST(exp: any): exp is AST {
-    return typeof exp == "object" && exp && "type" in exp;
-  }
+  // function isAST(exp: any): exp is ASTStatement {
+  //   return typeof exp == "object" && exp && "type" in exp;
+  // }
 
   function buildPath(file: string, path: string) {
     return file.startsWith("/") ? file + ".prgm" : `${path}/${file}.prgm`;
   }
 
-  async function _import(exp: Types["import"], env: Environment, path = _path) {
+  async function _import(exp: Statements["import"], env: Environment, path = _path) {
     let code = "";
     while (path.startsWith("//")) path = path.slice(1);
     let builtPath = buildPath(exp.value.value, path);
-    console.log(builtPath);
-    if (builtPath.startsWith("/std/")) {
-      code = await (await fetch(require("../../standardLibrary/" + builtPath.split("/").splice(2).join("/")))).text();
-    } else code = await (await fetch(builtPath)).text();
+    // console.log(builtPath);
+    if (typeof fetch != "undefined") {
+      // let url = "../../standardLibrary/" + builtPath.split("/").splice(2).join("/");
+      // console.log(require(url));
+      if (builtPath.startsWith("/std/")) {
+        code = await (await fetch(require("../../standardLibrary/" + builtPath.split("/").splice(2).join("/")))).text();
+      } else code = await (await fetch(builtPath)).text();
+    } else {
+      const os = await import("os");
+      const path = await import("path");
+      const fs = await import("fs");
+      let basePath = "";
+      if (process.platform == "win32") {
+        basePath = path.join(os.homedir(), "AppData\\Roaming\\npm\\node_modules\\prgm-lang");
+      }
+      // console.log(process.execPath);
+      // console.log(path.join(basePath, "standardLibrary", builtPath.split("/").splice(2).join("/")));
+      if (builtPath.startsWith("/std/")) {
+        code = fs.readFileSync(path.join(basePath, "standardLibrary", builtPath.split("/").splice(2).join("/"))).toString();
+      } else code = fs.readFileSync(builtPath).toString();
+    }
     const ast = parse(code);
     let newPath = exp.value.value.split("/").slice(0, -1).join("/");
     if (!newPath.startsWith("/")) newPath = "/" + newPath;
@@ -166,10 +204,10 @@ export async function evaluate(
     // }
   }
 
-  async function collapseDotOp(exp: Types["binary"], env: Environment, path: string) {
+  async function collapseDotOp(exp: Expressions["binary"], env: Environment, path: string) {
     if (exp.operator != ".") return undefined;
     if (exp.right.type == "binary" && exp.right.operator == ".") {
-      const leftTarget = await main(
+      const leftTarget = await mainExp(
         {
           type: "binary",
           operator: ".",
@@ -254,10 +292,10 @@ export async function evaluate(
         ? args[i]
         : names[i].default === null
         ? null
-        : await main(names[i].default!, env, path)
+        : await mainExp(names[i].default!, env, path)
     );
   }
-  function make_function(env: Environment, exp: Types["function"], path: string) {
+  function make_function(env: Environment, exp: Statements["function"] | Expressions["functionExpr"], path: string) {
     async function _function() {
       let names = exp.vars;
       let scope = env.extend();
@@ -269,8 +307,7 @@ export async function evaluate(
     return _function;
   }
 
-  const classesBuffer = new Map<string, any>();
-  async function make_class(env: Environment, exp: Types["class"], path: string) {
+  async function make_class(env: Environment, exp: Statements["class"], path: string) {
     async function _function() {
       // let key = "";
       // if (exp.name) {
@@ -300,7 +337,9 @@ export async function evaluate(
       let bodyScope = env.extend();
       // for (let i = 0; i < names.length; i++) await defineArgument(names, scope, env, i, arguments);
 
-      let instance = <PRGM_Class>Object.create(null);
+      // @ts-expect-error
+      let instance = <PRGM_Class>new (0, eval(`(class ${exp.name} {})`))();
+      // let instance = <PRGM_Class>Object.create(null);
       if (exp.extendsName) {
         bodyScope.def("super", async (...args: any[]) => {
           if (exp.extendsName) {
@@ -316,7 +355,7 @@ export async function evaluate(
         switch (element.type) {
           case "prop":
             if (!element.static)
-              await main(
+              await mainExp(
                 {
                   type: "binary",
                   operator: "=",
@@ -340,7 +379,7 @@ export async function evaluate(
             break;
           case "func":
             if (!element.static)
-              await main(
+              await mainExp(
                 {
                   type: "binary",
                   operator: "=",
@@ -357,7 +396,7 @@ export async function evaluate(
                     }
                   },
                   right: {
-                    type: "function",
+                    type: "functionExpr",
                     body: element.body,
                     vars: element.vars
                   }
@@ -447,14 +486,14 @@ export async function evaluate(
 
   const asyncWhileLoops: ReturnType<typeof setInterval>[] = [];
 
-  async function call(func: Function, callArgs: AST[], env: Environment, path: string) {
+  async function call(func: Function, callArgs: ASTExpression[], env: Environment, path: string) {
     if (typeof func != "function") {
       throwGood(new TypeError(`${JSON.stringify(func)} is not a function`));
       return false;
     }
     let args: any[] = [];
     for (const arg of callArgs) {
-      args.push(await main(arg, env, path));
+      args.push(await mainExp(arg, env, path));
     }
     let res = await func.apply(null, args);
     // if (typeof res == "object") {
@@ -463,65 +502,109 @@ export async function evaluate(
     return res;
   }
 
-  async function main(exp: AST, env: Environment, path: string): Promise<any> {
-    switch (exp.type) {
-      case "unary":
-        switch (exp.operator) {
-          case "!": {
-            let val = await main(exp.body, env, path);
-            return val === false || val === null ? true : false;
-          }
-          case "-": {
-            let val = await main(exp.body, env, path);
-            return apply_op("-", 1, val);
-          }
-        }
-        return undefined;
-      case "binary":
-        switch (exp.operator) {
-          case "=":
-            if (exp.left.type != "var" && !(exp.left.type == "binary" && exp.left.operator == "."))
-              throwGood(new TypeError(`Cannot assign to ${JSON.stringify(exp.left)}`));
-            if (exp.left.type == "var") return env.set(exp.left.value, await main(exp.right, env, path));
-            else {
-              // This is for assignment to a property of an object (`target`).
-              let [target, , value] = applyVar(await main(exp.left.left, env, path), exp.left.right);
-              return (target[value] = await main(exp.right, env, path));
-            }
-          case "+=":
-          case "-=":
-          case "/=":
-          case "*=":
-            const res = await overloadOp(exp.operator, await main(exp.left, env, path), await main(exp.right, env, path));
-            if (res !== undefined) return res;
-            return await main(
-              {
-                type: "binary",
-                operator: "=",
-                left: exp.left,
-                right: {
-                  type: "binary",
-                  operator: exp.operator[0],
-                  left: exp.left,
-                  right: exp.right
+  async function mainExp(exp: ASTExpression, env: Environment, path: string): Promise<any> {
+    return await main(convertToStatement(exp), env, path);
+  }
+
+  async function main(statement: ASTStatement, env: Environment, path: string): Promise<any> {
+    switch (statement.type) {
+      case "statementExpr":
+        {
+          let exp = statement.expr;
+          switch (exp.type) {
+            case "unary":
+              switch (exp.operator) {
+                case "!": {
+                  let val = await mainExp(exp.body, env, path);
+                  return val === false || val === null ? true : false;
                 }
-              },
-              env,
-              path
-            );
-          case ".":
-            return await evalDot(env, exp, path);
-          default:
-            return await apply_op(exp.operator, await main(exp.left, env, path), await main(exp.right, env, path));
+                case "-": {
+                  let val = await mainExp(exp.body, env, path);
+                  return apply_op("-", 1, val);
+                }
+              }
+              return undefined;
+            case "binary":
+              switch (exp.operator) {
+                case "=":
+                  if (exp.left.type != "var" && !(exp.left.type == "binary" && exp.left.operator == ".")) {
+                    throwGood(new TypeError(`Cannot assign to ${JSON.stringify(exp.left)}`));
+                    return null;
+                  }
+                  if (exp.left.type == "var") return env.set(exp.left.value, await mainExp(exp.right, env, path));
+                  else {
+                    // This is for assignment to a property of an object (`target`).
+                    let [target, , value] = applyVar(await mainExp(exp.left.left, env, path), exp.left.right);
+                    return (target[value] = await mainExp(exp.right, env, path));
+                  }
+                case "+=":
+                case "-=":
+                case "/=":
+                case "*=":
+                  const res = await overloadOp(
+                    exp.operator,
+                    await mainExp(exp.left, env, path),
+                    await mainExp(exp.right, env, path)
+                  );
+                  if (res !== undefined) return res;
+                  return await mainExp(
+                    {
+                      type: "binary",
+                      operator: "=",
+                      left: exp.left,
+                      right: {
+                        type: "binary",
+                        operator: exp.operator[0],
+                        left: exp.left,
+                        right: exp.right
+                      }
+                    },
+                    env,
+                    path
+                  );
+                case ".":
+                  return await evalDot(env, exp, path);
+                default:
+                  return await apply_op(exp.operator, await mainExp(exp.left, env, path), await mainExp(exp.right, env, path));
+              }
+            case "call":
+              let func: Function = await mainExp(exp.func, env, path);
+              return await call(func, exp.args, env, path);
+            case "object": {
+              let res: { [key: string]: any } = {};
+              let scope = env.extend();
+              scope.def("this", res);
+              for (const key in exp.data) {
+                if (Object.prototype.hasOwnProperty.call(exp.data, key)) {
+                  const element = exp.data[key];
+                  res[key] = await mainExp(element, scope, path);
+                }
+              }
+              return res;
+            }
+            case "functionExpr": {
+              return make_function(env, exp, path);
+            }
+
+            case "null":
+              return null;
+            case "var":
+              return env.get(exp.value);
+            case "str":
+              return env.get("String")(exp.value.split(""));
+            case "char":
+              if (exp.value.length > 1) throwGood(new TypeError("Char can hold up to 1 character"));
+            case "bool":
+            case "num":
+              return exp.value;
+          }
         }
-      case "call":
-        let func: Function = await main(exp.func, env, path);
-        return await call(func, exp.args, env, path);
+        break;
 
       case "prog": {
         let val: any = false;
         // let exports: Types["export"][] = [];
-        for (const _exp of exp.prog) {
+        for (const _exp of statement.prog) {
           val = await main(_exp, env, path);
           // if (isAST(val) && val.type == "export") {
           //   exports.push(val);
@@ -531,13 +614,13 @@ export async function evaluate(
         return val;
       }
       case "if":
-        let cond = await main(exp.cond, env, path);
-        if (cond !== false) return await main(exp.then, env, path);
-        return exp.else ? await main(exp.else, env, path) : false;
+        let cond = await mainExp(statement.cond, env, path);
+        if (cond !== false) return await main(statement.then, env, path);
+        return statement.else ? await main(statement.else, env, path) : false;
       case "do": {
         do {
-          await main(exp.body, env, path);
-        } while ((await main(exp.cond, env, path)) !== false);
+          await main(statement.body, env, path);
+        } while ((await mainExp(statement.cond, env, path)) !== false);
         // const value = { loop: exp, env, i: 0 };
         // doWhileLoops.push(value);
         // await awaitDeletion(doWhileLoops, value);
@@ -546,13 +629,13 @@ export async function evaluate(
       case "_while": {
         let i = 0;
         const interval = setInterval(async () => {
-          const cond = await main(exp.cond, env, path);
+          const cond = await mainExp(statement.cond, env, path);
 
-          if (cond === false && exp.else && i == 0) {
-            await main(exp.else, env, path);
+          if (cond === false && statement.else && i == 0) {
+            await main(statement.else, env, path);
             clearInterval(interval);
           } else if (cond) {
-            await main(exp.body, env, path);
+            await main(statement.body, env, path);
             i++;
           } else {
             clearInterval(interval);
@@ -569,55 +652,32 @@ export async function evaluate(
           async () => (await main(exp.cond, env)) != false
         );
       else */
-        if (exp.else && (await main(exp.cond, env, path)) === false) {
-          await main(exp.else, env, path);
+        if (statement.else && (await mainExp(statement.cond, env, path)) === false) {
+          await main(statement.else, env, path);
         } else
-          while ((await main(exp.cond, env, path)) !== false) {
-            await main(exp.body, env, path);
+          while ((await mainExp(statement.cond, env, path)) !== false) {
+            await main(statement.body, env, path);
           }
 
         return false;
       }
       case "function": {
-        return make_function(env, exp, path);
+        return make_function(env, statement, path);
       }
-      case "object": {
-        let res: { [key: string]: any } = {};
-        let scope = env.extend();
-        scope.def("this", res);
-        for (const key in exp.data) {
-          if (Object.prototype.hasOwnProperty.call(exp.data, key)) {
-            const element = exp.data[key];
-            res[key] = await main(element, scope, path);
-          }
-        }
-        return res;
-      }
+
       case "class":
-        return make_class(env, exp, path);
+        return make_class(env, statement, path);
 
       case "import":
-        await _import(exp, env, path);
+        await _import(statement, env, path);
         return null;
       // case "export":
       //   await main(exp.value, env, testingFlag);
       //   return exp;
 
-      case "null":
-        return null;
-      case "var":
-        return env.get(exp.value);
-      case "str":
-        return env.get("String")(exp.value.split(""));
-      case "char":
-        if (exp.value.length > 1) throwGood(new TypeError("Char can hold up to 1 character"));
-      case "bool":
-      case "num":
-        return exp.value;
-
       default:
         // @ts-ignore
-        throwGood(new Error(`I don't know how to main an expression of type "${exp.type}"`), pid);
+        throwGood(new Error(`I don't know how to main an expression of type "${statement.type}"`), pid);
     }
   }
   return main(exp, env, _path);

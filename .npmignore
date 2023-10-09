@@ -2,3 +2,4 @@ src/
 .gitattributes
 tsconfig.json
 webpack.config.js
+TODO.md
