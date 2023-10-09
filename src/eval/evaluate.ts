@@ -163,7 +163,10 @@ export async function evaluate(
   // }
 
   function buildPath(file: string, path: string) {
-    return file.startsWith("/") ? file + ".prgm" : `${path}/${file}.prgm`;
+    let newPath = file.startsWith("/") ? file : `${path}/${file}`;
+    if (!/\.\w+$/.test(newPath)) newPath += ".prgm";
+
+    return newPath;
   }
 
   async function _import(exp: Statements["import"], env: Environment, path = _path) {
