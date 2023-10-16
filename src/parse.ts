@@ -62,6 +62,7 @@ export interface Statements {
   do: { type: "do"; cond: ASTExpression; body: ASTStatement };
   _while: { type: "_while"; cond: ASTExpression; body: ASTStatement; else?: ASTStatement };
   while: { type: "while"; cond: ASTExpression; body: ASTStatement; else?: ASTStatement };
+  for: { type: "for"; init: ASTExpression; check: ASTExpression; inc: ASTExpression; body: ASTStatement };
 
   function: { type: "function"; name: string; vars: Argument[]; body: ASTStatement };
   class: { type: "class"; name: string; extendsName: string | null; body: ClassBody[keyof ClassBody][] };
@@ -307,6 +308,11 @@ export function parse(str: string, onError = (err: Error) => {}, testingFlag = f
       ret.else = parse_statement();
     }
     return ret;
+  }
+  function parse_for(): Statements["for"] {
+    skip_kw("for");
+    skip_punc("(");
+    let init = parse_expression();
   }
   function parse__while(): Statements["_while"] {
     skip_kw("_while");
