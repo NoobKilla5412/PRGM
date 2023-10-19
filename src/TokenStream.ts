@@ -1,7 +1,7 @@
 /* eslint-disable */
 import { InputStream } from "./InputStream";
 
-interface TokenTypes {
+export interface TokenTypes {
   num: number;
   str: string;
   kw: string;
@@ -40,7 +40,8 @@ export class TokenStream {
     "export",
     "true",
     "false",
-    "null"
+    "null",
+    "syntax"
   ]);
   public registerKeyword(keyword: string) {
     this.keywords.add(keyword);
@@ -65,7 +66,7 @@ export class TokenStream {
     return this.is_id_start(ch) || "?!-+/*%<>=0123456789".indexOf(ch) >= 0;
   }
   private is_op_char(ch: string) {
-    return ".+-*/%=&|<>!".indexOf(ch) >= 0;
+    return ".+-*/%=&|<>!$".indexOf(ch) >= 0;
   }
   private is_punc(ch: string) {
     return ",:;(){}[]".indexOf(ch) >= 0;

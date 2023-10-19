@@ -1,6 +1,6 @@
 /* eslint-disable */
 import { InputStream } from "./InputStream";
-import { Token, TokenStream, TokenTypeChecks } from "./TokenStream";
+import { Token, TokenStream, TokenTypeChecks, TokenTypes } from "./TokenStream";
 
 const FALSE: Expressions["bool"] = { type: "bool", value: false };
 
@@ -91,6 +91,21 @@ function array_forEach_rtn<T, R>(array: T[], cb: (element: T, index: number, arr
 
 export function parse(str: string, onError = (err: Error) => {}, testingFlag = false): Statements["prog"] {
   const input = new TokenStream(new InputStream(str, onError));
+
+  let customExpr = new Map<
+    string,
+    {
+      syntax: Token<keyof TokenTypes>[];
+      eval: Statements["prog"];
+    }
+  >();
+  let customStmt = new Map<
+    string,
+    {
+      syntax: Token<keyof TokenTypes>[];
+      eval: Statements["prog"];
+    }
+  >();
 
   if (testingFlag) {
     // @ts-ignore
@@ -651,6 +666,10 @@ export function parse(str: string, onError = (err: Error) => {}, testingFlag = f
     else if (is_kw("class")) res = parse_class();
     else if (is_kw("import")) res = parse_import();
     else if (is_kw("export")) res = parse_export();
+    else if (is_kw("syntax")) {
+      parse_syntax();
+      res = { type: "statementExpr", expr: { type: "null" } };
+    }
 
     if (typeof res! == "undefined") {
       let expr = parse_expression();
@@ -670,6 +689,38 @@ export function parse(str: string, onError = (err: Error) => {}, testingFlag = f
 
     unexpected();
     return { type: "statementExpr", expr: { type: "null" } };
+  }
+
+  function parse_syntax() {
+    skip_kw("syntax");
+    let tokens: Token<keyof TokenTypes>[] = [];
+    let parenCount = 1;
+    let type = "expr";
+    if (is_punc("(")) {
+      // this is a new expression
+      type = "expr";
+      while (!input.eof() && parenCount > 0) {
+        let tok = input.next();
+        if (!tok) break;
+        if (tok.type == "punc") {
+          if (tok.value == "(") parenCount++;
+          else if (tok.value == ")") parenCount--;
+        }
+        tokens.push(tok);
+      }
+    } else if (is_punc("{")) {
+      // this is a new statement
+      type = "stmt";
+      while (!input.eof() && parenCount > 0) {
+        let tok = input.next();
+        if (!tok) break;
+        if (tok.type == "punc") {
+          if (tok.value == "{") parenCount++;
+          else if (tok.value == "}") parenCount--;
+        }
+        tokens.push(tok);
+      }
+    }
   }
 
   // function parse_varDeclaration(): Statements["varDeclaration"] {
