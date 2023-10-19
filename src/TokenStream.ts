@@ -28,6 +28,7 @@ export class TokenStream {
     "do",
     "_while",
     "while",
+    "for",
     "function",
     "object",
     "class",
@@ -153,9 +154,7 @@ export class TokenStream {
         type: "op",
         value: this.read_while(this.is_op_char)
       };
-    this.input.croak(
-      `Can't handle character: "${ch}" (Code: ${ch.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")})`
-    );
+    this.input.croak(`Can't handle character: "${ch}" (Code: ${ch.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")})`);
     return;
   }
   public peek(offset?: number) {

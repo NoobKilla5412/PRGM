@@ -313,6 +313,19 @@ export function parse(str: string, onError = (err: Error) => {}, testingFlag = f
     skip_kw("for");
     skip_punc("(");
     let init = parse_expression();
+    skip_punc(";");
+    let check = parse_expression();
+    skip_punc(";");
+    let inc = parse_expression();
+    skip_punc(")");
+    let body = parse_statement();
+    return {
+      type: "for",
+      init,
+      check,
+      inc,
+      body
+    };
   }
   function parse__while(): Statements["_while"] {
     skip_kw("_while");
@@ -571,10 +584,7 @@ export function parse(str: string, onError = (err: Error) => {}, testingFlag = f
       var tok = input.next();
       if (
         tok &&
-        (TokenTypeChecks.check("var", tok) ||
-          TokenTypeChecks.check("num", tok) ||
-          TokenTypeChecks.check("str", tok) ||
-          TokenTypeChecks.check("char", tok))
+        (TokenTypeChecks.check("var", tok) || TokenTypeChecks.check("num", tok) || TokenTypeChecks.check("str", tok) || TokenTypeChecks.check("char", tok))
       )
         return tok;
       unexpected();
@@ -631,6 +641,7 @@ export function parse(str: string, onError = (err: Error) => {}, testingFlag = f
     else if (is_kw("do")) res = parse_do();
     else if (is_kw("_while")) res = parse__while();
     else if (is_kw("while")) res = parse_while();
+    else if (is_kw("for")) res = parse_for();
     // let tok = input.peek();
     // let tok1 = input.peek(1);
     // if (tok?.type == "str" && tok1?.type == "op" && tok1.value == "=") {
