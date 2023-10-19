@@ -36,7 +36,6 @@ export class TokenStream {
     "operator",
     "constructor",
     "extends",
-    // "export",
     "import",
     "true",
     "false",
