@@ -3,7 +3,7 @@ export type TODO = any;
 
 export class Environment {
   public vars: { [key: string]: TODO };
-  private parent: Environment | undefined;
+  public parent: Environment | undefined;
 
   public constructor(parent?: Environment) {
     this.vars = Object.create(parent ? parent.vars : null);

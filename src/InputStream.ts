@@ -28,8 +28,8 @@ export class InputStream {
   }
 
   public croak(msg: string) {
-    let err = new Error(`${msg} (${this.line}:${this.col})
-${"" ?? `${this.input.slice(0, this.pos)}|${this.input.slice(this.pos)}`}`);
+    let err = new Error(`${msg} (${this.line}:${this.col})`);
+    // ${"" ?? `${this.input.slice(0, this.pos)}|${this.input.slice(this.pos)}`}`);
     console.error(err);
     this.onError(err);
     return err;

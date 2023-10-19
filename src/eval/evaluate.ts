@@ -1,15 +1,5 @@
 /* eslint-disable */
-import {
-  ASTExpression,
-  ASTStatement,
-  Argument,
-  ClassBody,
-  ClassUtils,
-  Expressions,
-  Statements,
-  convertToStatement,
-  parse
-} from "../parse";
+import { ASTExpression, ASTStatement, Argument, ClassBody, ClassUtils, Expressions, Statements, convertToStatement, parse } from "../parse";
 import { useUtils } from "../utils";
 import { Environment } from "./Environment";
 
@@ -65,12 +55,14 @@ interface PRGM_Class {
 
 export async function evaluate(
   exp: ASTStatement,
-  env: Environment,
+  exportEnv: Environment,
   pid: number,
   _path: string,
   onExit = (code: number) => {},
   onError = (err: Error) => {}
 ): Promise<any> {
+  const env = exportEnv.extend();
+
   // async function syncAsyncLoop(loop: () => void | Promise<void>, cond: () => boolean | Promise<boolean>) {
   //   return new Promise<void>((resolve) => {
   //     const interval = setInterval(async () => {
@@ -224,10 +216,8 @@ export async function evaluate(
     }
   }
   async function overloadOp(op: string, a: any, b: any) {
-    if (typeof a == "object" && a != null && a[classOperators] && op in a[classOperators])
-      return await a[classOperators][op](b);
-    else if (typeof b == "object" && b != null && b[classOperators] && op in b[classOperators])
-      return await b[classOperators][op](a);
+    if (typeof a == "object" && a != null && a[classOperators] && op in a[classOperators]) return await a[classOperators][op](b);
+    else if (typeof b == "object" && b != null && b[classOperators] && op in b[classOperators]) return await b[classOperators][op](a);
     return undefined;
   }
 
@@ -281,22 +271,8 @@ export async function evaluate(
     return false;
   }
 
-  async function defineArgument(
-    names: Argument[],
-    scope: Environment,
-    env: Environment,
-    i: number,
-    args: IArguments,
-    path: string
-  ) {
-    scope.def(
-      names[i].name,
-      i < args.length && !isBadArg(args[i])
-        ? args[i]
-        : names[i].default === null
-        ? null
-        : await mainExp(names[i].default!, env, path)
-    );
+  async function defineArgument(names: Argument[], scope: Environment, env: Environment, i: number, args: IArguments, path: string) {
+    scope.def(names[i].name, i < args.length && !isBadArg(args[i]) ? args[i] : names[i].default === null ? null : await mainExp(names[i].default!, env, path));
   }
   function make_function(env: Environment, exp: Statements["function"] | Expressions["functionExpr"], path: string) {
     async function _function() {
@@ -544,11 +520,7 @@ export async function evaluate(
                 case "-=":
                 case "/=":
                 case "*=":
-                  const res = await overloadOp(
-                    exp.operator,
-                    await mainExp(exp.left, env, path),
-                    await mainExp(exp.right, env, path)
-                  );
+                  const res = await overloadOp(exp.operator, await mainExp(exp.left, env, path), await mainExp(exp.right, env, path));
                   if (res !== undefined) return res;
                   return await mainExp(
                     {
@@ -655,15 +627,27 @@ export async function evaluate(
           async () => (await main(exp.cond, env)) != false
         );
       else */
-        if (statement.else && (await mainExp(statement.cond, env, path)) === false) {
-          await main(statement.else, env, path);
+        const whileEnv = env.extend();
+
+        if (statement.else && (await mainExp(statement.cond, whileEnv, path)) === false) {
+          await main(statement.else, whileEnv, path);
         } else
-          while ((await mainExp(statement.cond, env, path)) !== false) {
-            await main(statement.body, env, path);
+          while ((await mainExp(statement.cond, whileEnv, path)) !== false) {
+            await main(statement.body, whileEnv, path);
           }
 
-        return false;
+        return null;
       }
+      case "for":
+        const forEnv = env.extend();
+
+        await mainExp(statement.init, forEnv, path);
+        while ((await mainExp(statement.check, forEnv, path)) !== false) {
+          await main(statement.body, forEnv, path);
+          await mainExp(statement.inc, forEnv, path);
+        }
+
+        return null;
       case "function": {
         return make_function(env, statement, path);
       }
@@ -674,14 +658,17 @@ export async function evaluate(
       case "import":
         await _import(statement, env, path);
         return null;
-      // case "export":
-      //   await main(exp.value, env, testingFlag);
-      //   return exp;
+      case "export":
+        if (!env.parent) throwGood(new TypeError("No parent env"));
+
+        await main(statement, env.parent ?? env, path);
+        return null;
 
       default:
         // @ts-ignore
         throwGood(new Error(`I don't know how to main an expression of type "${statement.type}"`), pid);
     }
   }
+
   return main(exp, env, _path);
 }

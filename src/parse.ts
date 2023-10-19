@@ -68,7 +68,7 @@ export interface Statements {
   class: { type: "class"; name: string; extendsName: string | null; body: ClassBody[keyof ClassBody][] };
 
   import: { type: "import"; value: Expressions["str"] };
-  // export: { type: "export"; value: ASTStatement };
+  export: { type: "export"; value: ASTStatement };
 
   // varDeclaration: { type: "varDeclaration"; name: string; value: ASTExpression };
 }
@@ -343,13 +343,13 @@ export function parse(str: string, onError = (err: Error) => {}, testingFlag = f
     }
     return ret;
   }
-  // function parse_export(): Types["export"] {
-  //   skip_kw("export");
-  //   return {
-  //     type: "export",
-  //     value: parse_expression()
-  //   };
-  // }
+  function parse_export(): Statements["export"] {
+    skip_kw("export");
+    return {
+      type: "export",
+      value: parse_statement()
+    };
+  }
   function parse_import(): Statements["import"] {
     skip_kw("import");
     let value: Expressions["str"] | null = null;
@@ -650,6 +650,7 @@ export function parse(str: string, onError = (err: Error) => {}, testingFlag = f
     else if (is_kw("function")) res = parse_function();
     else if (is_kw("class")) res = parse_class();
     else if (is_kw("import")) res = parse_import();
+    else if (is_kw("export")) res = parse_export();
 
     if (typeof res! == "undefined") {
       let expr = parse_expression();

@@ -21,7 +21,7 @@ export namespace TokenTypeChecks {
 
 export class TokenStream {
   private current: (Token<keyof TokenTypes> | undefined)[] = [];
-  private keywords = [
+  private keywords = new Set([
     "if",
     "then",
     "else",
@@ -37,10 +37,15 @@ export class TokenStream {
     "constructor",
     "extends",
     "import",
+    "export",
     "true",
     "false",
     "null"
-  ];
+  ]);
+  public registerKeyword(keyword: string) {
+    this.keywords.add(keyword);
+  }
+
   private input: InputStream;
 
   public constructor(input: InputStream) {
@@ -48,7 +53,7 @@ export class TokenStream {
   }
 
   private is_keyword(x: string) {
-    return this.keywords.includes(x);
+    return this.keywords.has(x);
   }
   private is_digit(ch: string) {
     return /[0-9]/i.test(ch);
