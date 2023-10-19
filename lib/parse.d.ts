@@ -38,6 +38,11 @@ export interface Expressions {
         left: ASTExpression;
         right: ASTExpression;
     };
+    arrayAccess: {
+        type: "arrayAccess";
+        val: ASTExpression;
+        getter: ASTExpression;
+    };
     call: {
         type: "call";
         func: ASTExpression;

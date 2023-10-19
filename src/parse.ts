@@ -40,6 +40,7 @@ export namespace ClassUtils {
 export interface Expressions {
   unary: { type: "unary"; operator: string; body: ASTExpression };
   binary: { type: "binary"; operator: string; left: ASTExpression; right: ASTExpression };
+  arrayAccess: { type: "arrayAccess"; val: ASTExpression; getter: ASTExpression };
   call: { type: "call"; func: ASTExpression; args: ASTExpression[] };
   functionExpr: { type: "functionExpr"; name?: string; vars: Argument[]; body: ASTStatement };
   classExpr: { type: "classExpr"; name?: string; extendsName: string | null; body: ClassBody[keyof ClassBody][] };
@@ -228,6 +229,18 @@ export function parse(str: string, onError = (err: Error) => {}, testingFlag = f
       type: "call",
       func,
       args: delimited("(", ")", ",", parse_expression)
+    };
+  }
+  function parse_arrayAccess(val: ASTExpression): ASTExpression {
+    skip_punc("[");
+    let getter = parse_expression();
+    skip_punc("]");
+
+    return {
+      type: "binary",
+      left: val,
+      operator: "[]",
+      right: getter
     };
   }
   // function parse_type(): Types["type"] {
@@ -523,15 +536,20 @@ export function parse(str: string, onError = (err: Error) => {}, testingFlag = f
     const res = expr();
     return is_punc("(") ? parse_call(res) : res;
   }
+  function maybe_arrayAccess(expr: () => ASTExpression | undefined): ASTExpression {
+    let res = expr();
+    if (!res) res = { type: "null" };
+    return is_punc("[") ? parse_arrayAccess(res) : res;
+  }
   // function maybe_varDeclaration(expr: () => AST): AST {
   //   const res = expr();
   //   return input.peek()?.type == "var" && res.type == "var" ? parse_varDeclaration(res) : res;
   // }
   function parse_atom(): ASTExpression {
-    return maybe_call(() => parse_atom_withoutCall());
+    return maybe_call(() => maybe_arrayAccess(() => parse_atom_withoutCall()));
   }
   function parse_atom_withoutCall() {
-    let left: ASTExpression | undefined = (() => {
+    let left: ASTExpression | undefined = maybe_arrayAccess(() => {
       if (is_punc("(")) {
         input.next();
         var exp = parse_expression();
@@ -573,7 +591,7 @@ export function parse(str: string, onError = (err: Error) => {}, testingFlag = f
         return tok;
       unexpected();
       return;
-    })();
+    });
     if (!left) left = { type: "null" };
     return maybe_access(left);
   }

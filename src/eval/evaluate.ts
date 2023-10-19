@@ -96,10 +96,22 @@ export async function evaluate(
    * @param var_ The property
    * @returns The property value
    */
-  function applyVar(target: any, var_: ASTExpression): [any, any, string] {
-    if (var_.type == "binary" && var_.left.type == "var") {
-      return applyVar(target[var_.left.value], var_.right);
-    } else if (var_.type == "var") {
+  async function applyVar(
+    target: any,
+    var_: ASTExpression,
+    env: Environment,
+    path: string
+  ): Promise<[target: any, res: any, key: string]> {
+    if (typeof var_ == "string") {
+      return [target, target[var_], var_];
+    } else if (var_.type == "binary" && var_.operator == "." && var_.left.type == "var") {
+      return await applyVar(target[var_.left.value], var_.right, env, path);
+    } else if (var_.type == "binary" && var_.operator == "[]") {
+      let [, first] = await applyVar(target, var_.left, env, path);
+      let selector = await mainExp(var_.right, env, path);
+      const res = await applyVar(first, selector, env, path);
+      return res;
+    } else if (var_.type == "var" || var_.type == "str") {
       return [target, target[var_.value], var_.value];
     }
     throwGood(new TypeError("Invalid dot operator"));
@@ -130,10 +142,14 @@ export async function evaluate(
     //   return false;
     // }
     // let res = target[value];
-    let [target, res] = applyVar(await mainExp(exp.left, env, path), exp.right);
+    let [target, res] = await applyVar(await mainExp(exp.left, env, path), exp.right, env, path);
     if (res === undefined) res = null;
     if (typeof res == "function") res = res.bind(target);
     return res;
+  }
+  async function setEvalDot(env: Environment, exp: Expressions["binary"], path: string, setValue: ASTExpression) {
+    let [target, res, key] = await applyVar(await mainExp(exp.left, env, path), exp.right, env, path);
+    return (target[key] = await mainExp(setValue, env, path));
   }
 
   // function getName(exp: ASTStatement): string | undefined {
@@ -231,33 +247,39 @@ export async function evaluate(
     return undefined;
   }
 
-  async function apply_op(op: string, a: any, b: any) {
-    function num(x: any) {
+  async function apply_op(op: string, a: ASTExpression, b: ASTExpression, env: Environment, path: string) {
+    async function num(_x: ASTExpression) {
+      let x = await mainExp(_x, env, path);
       if (typeof x != "number") throwGood(new TypeError(`Expected number but got ${x}`));
       return x;
     }
-    function div(x: any) {
-      if (num(x) == 0) throwGood(new Error("Divide by zero"));
+    async function div(_x: ASTExpression) {
+      let x = await mainExp(_x, env, path);
+      if ((await num(x)) == 0) throwGood(new Error("Divide by zero"));
       return x;
     }
 
-    const res = await overloadOp(op, a, b);
+    if (op == "&&") return (await mainExp(a, env, path)) !== false && (await mainExp(b, env, path));
+    if (op == "||") {
+      let _a = await mainExp(a, env, path);
+      return _a !== false ? _a : await mainExp(b, env, path);
+    }
+
+    const _a = await mainExp(a, env, path);
+    const _b = await mainExp(b, env, path);
+    const res = await overloadOp(op, _a, _b);
     if (res) return res;
     switch (op) {
       case "+":
-        return num(a) + num(b);
+        return (await num(a)) + (await num(b));
       case "-":
-        return num(a) - num(b);
+        return (await num(a)) - (await num(b));
       case "*":
-        return num(a) * num(b);
+        return (await num(a)) * (await num(b));
       case "/":
-        return num(a) / num(b);
+        return (await num(a)) / (await num(b));
       case "%":
-        return num(a) % num(b);
-      case "&&":
-        return a !== false && b;
-      case "||":
-        return a !== false ? a : b;
+        return (await num(a)) % (await num(b));
       case "<":
         return num(a) < num(b);
       case ">":
@@ -267,9 +289,20 @@ export async function evaluate(
       case ">=":
         return num(a) >= num(b);
       case "==":
-        return a === b;
+        return (await mainExp(a, env, path)) === (await mainExp(b, env, path));
       case "!=":
-        return a !== b;
+        return (await mainExp(a, env, path)) !== (await mainExp(b, env, path));
+      case "[]":
+        return evalDot(
+          env,
+          {
+            type: "binary",
+            left: a,
+            operator: ".",
+            right: await mainExp(b, env, path)
+          },
+          path
+        );
     }
     throwGood(new Error(`Can't apply operator ${op}`));
   }
@@ -522,8 +555,7 @@ export async function evaluate(
                   return val === false || val === null ? true : false;
                 }
                 case "-": {
-                  let val = await mainExp(exp.body, env, path);
-                  return apply_op("-", 1, val);
+                  return apply_op("-", { type: "num", value: 1 }, exp.body, env, path);
                 }
               }
               return undefined;
@@ -537,8 +569,10 @@ export async function evaluate(
                   if (exp.left.type == "var") return env.set(exp.left.value, await mainExp(exp.right, env, path));
                   else {
                     // This is for assignment to a property of an object (`target`).
-                    let [target, , value] = applyVar(await mainExp(exp.left.left, env, path), exp.left.right);
-                    return (target[value] = await mainExp(exp.right, env, path));
+                    // console.log(exp.left);
+                    return setEvalDot(env, exp.left, path, exp.right);
+                    // let [target, , value] = applyVar(await mainExp(exp.left.left, env, path), exp.left.right);
+                    // return (target[value] = await mainExp(exp.right, env, path));
                   }
                 case "+=":
                 case "-=":
@@ -568,7 +602,7 @@ export async function evaluate(
                 case ".":
                   return await evalDot(env, exp, path);
                 default:
-                  return await apply_op(exp.operator, await mainExp(exp.left, env, path), await mainExp(exp.right, env, path));
+                  return await apply_op(exp.operator, exp.left, exp.right, env, path);
               }
             case "call":
               let func: Function = await mainExp(exp.func, env, path);

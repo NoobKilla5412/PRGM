@@ -14,6 +14,9 @@ export function defaultEnv() {
     return performance.now();
   });
   res.def("println", println);
+  res.def("sleep", async (delay?: number) => {
+    return new Promise<void>((resolve) => setTimeout(resolve, delay));
+  });
 
   return res;
 }

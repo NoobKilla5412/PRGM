@@ -1,0 +1,71 @@
+if = 'if', expression, '{' | 'then', statement, ';' | ( 'else', statement );
+do = 'do', statement, 'while', expression, ';';
+asyncWhile = "_while", expression, '{' | 'then', statement, ';' | ( 'else', statement );
+while = 'while', expression, '{' | 'then', statement, ';' | ( 'else', statement );
+function = 'function', ident, arguments, statement;
+class = 
+  'class',
+  ident,
+  [
+    'extends',
+    ident
+  ],
+  '{',
+  {
+    (
+      'operator',
+      op | '[]' | ident,
+      arguments,
+      prog
+    ),
+    (
+      'constructor',
+      arguments,
+      prog | expression
+    ),
+    (
+      [ 'static' ],
+      ident,
+      (
+        arguments,
+        prog | expression
+      ) | (
+        '=',
+        expression,
+        ';'
+      )
+    )
+  },
+  '}';
+import = 'import', str, ';';
+
+statement = if | do | asyncWhile | while | function | class | import | expression;
+
+
+
+unaryOp = '!' | '-';
+atom = 
+  (
+    '(',
+    expression,
+    ')'
+  ) | (
+    unaryOp,
+    atom
+  ) | (
+    'true' | 'false'
+  ) |
+  'null',
+  (
+    'object',
+    
+  )
+  [
+    '[',
+    expression,
+    ']'
+  ];
+expression = atom, [ arguments | { op, expression } ];
+
+argument = ident, [ '=', expression ];
+arguments = '(', { argument, ? ',' execpt maybe last ? }, ')';
