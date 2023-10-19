@@ -1,6 +1,6 @@
 /* eslint-disable */
 import { InputStream } from "./InputStream";
-import { Token, TokenStream, TokenTypeChecks } from "./TokenStream";
+import { Token, TokenStream, TokenTypeChecks, TokenTypes } from "./TokenStream";
 
 const FALSE: Expressions["bool"] = { type: "bool", value: false };
 
@@ -63,12 +63,13 @@ export interface Statements {
   do: { type: "do"; cond: ASTExpression; body: ASTStatement };
   _while: { type: "_while"; cond: ASTExpression; body: ASTStatement; else?: ASTStatement };
   while: { type: "while"; cond: ASTExpression; body: ASTStatement; else?: ASTStatement };
+  for: { type: "for"; init: ASTExpression; check: ASTExpression; inc: ASTExpression; body: ASTStatement };
 
   function: { type: "function"; name: string; vars: Argument[]; body: ASTStatement };
   class: { type: "class"; name: string; extendsName: string | null; body: ClassBody[keyof ClassBody][] };
 
   import: { type: "import"; value: Expressions["str"] };
-  // export: { type: "export"; value: ASTStatement };
+  export: { type: "export"; value: ASTStatement };
 
   // varDeclaration: { type: "varDeclaration"; name: string; value: ASTExpression };
 }
@@ -91,6 +92,21 @@ function array_forEach_rtn<T, R>(array: T[], cb: (element: T, index: number, arr
 
 export function parse(str: string, onError = (err: Error) => {}, testingFlag = false): Statements["prog"] {
   const input = new TokenStream(new InputStream(str, onError));
+
+  let customExpr = new Map<
+    string,
+    {
+      syntax: Token<keyof TokenTypes>[];
+      eval: Statements["prog"];
+    }
+  >();
+  let customStmt = new Map<
+    string,
+    {
+      syntax: Token<keyof TokenTypes>[];
+      eval: Statements["prog"];
+    }
+  >();
 
   if (testingFlag) {
     // @ts-ignore
@@ -321,6 +337,24 @@ export function parse(str: string, onError = (err: Error) => {}, testingFlag = f
     }
     return ret;
   }
+  function parse_for(): Statements["for"] {
+    skip_kw("for");
+    skip_punc("(");
+    let init = parse_expression();
+    skip_punc(";");
+    let check = parse_expression();
+    skip_punc(";");
+    let inc = parse_expression();
+    skip_punc(")");
+    let body = parse_statement();
+    return {
+      type: "for",
+      init,
+      check,
+      inc,
+      body
+    };
+  }
   function parse__while(): Statements["_while"] {
     skip_kw("_while");
     let cond = parse_expression();
@@ -337,13 +371,13 @@ export function parse(str: string, onError = (err: Error) => {}, testingFlag = f
     }
     return ret;
   }
-  // function parse_export(): Types["export"] {
-  //   skip_kw("export");
-  //   return {
-  //     type: "export",
-  //     value: parse_expression()
-  //   };
-  // }
+  function parse_export(): Statements["export"] {
+    skip_kw("export");
+    return {
+      type: "export",
+      value: parse_statement()
+    };
+  }
   function parse_import(): Statements["import"] {
     skip_kw("import");
     let value: Expressions["str"] | null = null;
@@ -583,10 +617,7 @@ export function parse(str: string, onError = (err: Error) => {}, testingFlag = f
       var tok = input.next();
       if (
         tok &&
-        (TokenTypeChecks.check("var", tok) ||
-          TokenTypeChecks.check("num", tok) ||
-          TokenTypeChecks.check("str", tok) ||
-          TokenTypeChecks.check("char", tok))
+        (TokenTypeChecks.check("var", tok) || TokenTypeChecks.check("num", tok) || TokenTypeChecks.check("str", tok) || TokenTypeChecks.check("char", tok))
       )
         return tok;
       unexpected();
@@ -643,6 +674,7 @@ export function parse(str: string, onError = (err: Error) => {}, testingFlag = f
     else if (is_kw("do")) res = parse_do();
     else if (is_kw("_while")) res = parse__while();
     else if (is_kw("while")) res = parse_while();
+    else if (is_kw("for")) res = parse_for();
     // let tok = input.peek();
     // let tok1 = input.peek(1);
     // if (tok?.type == "str" && tok1?.type == "op" && tok1.value == "=") {
@@ -651,6 +683,11 @@ export function parse(str: string, onError = (err: Error) => {}, testingFlag = f
     else if (is_kw("function")) res = parse_function();
     else if (is_kw("class")) res = parse_class();
     else if (is_kw("import")) res = parse_import();
+    else if (is_kw("export")) res = parse_export();
+    else if (is_kw("syntax")) {
+      parse_syntax();
+      res = { type: "statementExpr", expr: { type: "null" } };
+    }
 
     if (typeof res! == "undefined") {
       let expr = parse_expression();
@@ -670,6 +707,38 @@ export function parse(str: string, onError = (err: Error) => {}, testingFlag = f
 
     unexpected();
     return { type: "statementExpr", expr: { type: "null" } };
+  }
+
+  function parse_syntax() {
+    skip_kw("syntax");
+    let tokens: Token<keyof TokenTypes>[] = [];
+    let parenCount = 1;
+    let type = "expr";
+    if (is_punc("(")) {
+      // this is a new expression
+      type = "expr";
+      while (!input.eof() && parenCount > 0) {
+        let tok = input.next();
+        if (!tok) break;
+        if (tok.type == "punc") {
+          if (tok.value == "(") parenCount++;
+          else if (tok.value == ")") parenCount--;
+        }
+        tokens.push(tok);
+      }
+    } else if (is_punc("{")) {
+      // this is a new statement
+      type = "stmt";
+      while (!input.eof() && parenCount > 0) {
+        let tok = input.next();
+        if (!tok) break;
+        if (tok.type == "punc") {
+          if (tok.value == "{") parenCount++;
+          else if (tok.value == "}") parenCount--;
+        }
+        tokens.push(tok);
+      }
+    }
   }
 
   // function parse_varDeclaration(): Statements["varDeclaration"] {

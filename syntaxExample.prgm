@@ -1,0 +1,11 @@
+syntax (for ($expr{init}; $expr{check}; $expr{inc}) {$stmt{body}}) {
+  init();
+  while (check()) {
+    body();
+    inc();
+  }
+}
+
+syntax {declare $name{varname} = $expr{val} } {
+  global[varname()] = val();
+}

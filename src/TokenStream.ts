@@ -1,7 +1,7 @@
 /* eslint-disable */
 import { InputStream } from "./InputStream";
 
-interface TokenTypes {
+export interface TokenTypes {
   num: number;
   str: string;
   kw: string;
@@ -21,13 +21,14 @@ export namespace TokenTypeChecks {
 
 export class TokenStream {
   private current: (Token<keyof TokenTypes> | undefined)[] = [];
-  private keywords = [
+  private keywords = new Set([
     "if",
     "then",
     "else",
     "do",
     "_while",
     "while",
+    "for",
     "function",
     "object",
     "class",
@@ -35,12 +36,17 @@ export class TokenStream {
     "operator",
     "constructor",
     "extends",
-    // "export",
     "import",
+    "export",
     "true",
     "false",
-    "null"
-  ];
+    "null",
+    "syntax"
+  ]);
+  public registerKeyword(keyword: string) {
+    this.keywords.add(keyword);
+  }
+
   private input: InputStream;
 
   public constructor(input: InputStream) {
@@ -48,7 +54,7 @@ export class TokenStream {
   }
 
   private is_keyword(x: string) {
-    return this.keywords.includes(x);
+    return this.keywords.has(x);
   }
   private is_digit(ch: string) {
     return /[0-9]/i.test(ch);
@@ -60,7 +66,7 @@ export class TokenStream {
     return this.is_id_start(ch) || "?!-+/*%<>=0123456789".indexOf(ch) >= 0;
   }
   private is_op_char(ch: string) {
-    return ".+-*/%=&|<>!".indexOf(ch) >= 0;
+    return ".+-*/%=&|<>!$".indexOf(ch) >= 0;
   }
   private is_punc(ch: string) {
     return ",:;(){}[]".indexOf(ch) >= 0;
@@ -153,9 +159,7 @@ export class TokenStream {
         type: "op",
         value: this.read_while(this.is_op_char)
       };
-    this.input.croak(
-      `Can't handle character: "${ch}" (Code: ${ch.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")})`
-    );
+    this.input.croak(`Can't handle character: "${ch}" (Code: ${ch.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")})`);
     return;
   }
   public peek(offset?: number) {
