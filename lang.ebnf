@@ -68,4 +68,4 @@ atom =
 expression = atom, [ arguments | { op, expression } ];
 
 argument = ident, [ '=', expression ];
-arguments = '(', { argument, ? ',' execpt maybe last ? }, ')';
+arguments = '(', { argument, ? ',' except maybe last ? }, ')';

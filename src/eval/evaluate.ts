@@ -88,12 +88,7 @@ export async function evaluate(
    * @param var_ The property
    * @returns The property value
    */
-  async function applyVar(
-    target: any,
-    var_: ASTExpression,
-    env: Environment,
-    path: string
-  ): Promise<[target: any, res: any, key: string]> {
+  async function applyVar(target: any, var_: ASTExpression, env: Environment, path: string): Promise<[target: any, res: any, key: string]> {
     if (typeof var_ == "string") {
       return [target, target[var_], var_];
     } else if (var_.type == "binary" && var_.operator == "." && var_.left.type == "var") {
@@ -181,11 +176,11 @@ export async function evaluate(
     let code = "";
     while (path.startsWith("//")) path = path.slice(1);
     let builtPath = buildPath(exp.value.value, path);
-    // console.log(builtPath);
-    if (typeof fetch != "undefined") {
+    if (typeof process == "undefined") {
       // let url = "../../standardLibrary/" + builtPath.split("/").splice(2).join("/");
       // console.log(require(url));
       if (builtPath.startsWith("/std/")) {
+        // @ts-ignore
         code = await (await fetch(require("../../standardLibrary/" + builtPath.split("/").splice(2).join("/")))).text();
       } else code = await (await fetch(builtPath)).text();
     } else {
@@ -194,7 +189,9 @@ export async function evaluate(
       const fs = await import("fs");
       let basePath = "";
       if (process.platform == "win32") {
-        basePath = path.join(os.homedir(), "AppData\\Roaming\\npm\\node_modules\\prgm-lang");
+        basePath = path.join(os.homedir(), "AppData", "Roaming", "npm", "node_modules", "prgm-lang");
+      } else if (process.platform == "darwin") {
+        basePath = path.join("/usr", "local", "lib", "node_modules", "prgm-lang");
       }
       // console.log(process.execPath);
       // console.log(path.join(basePath, "standardLibrary", builtPath.split("/").splice(2).join("/")));
@@ -688,6 +685,49 @@ export async function evaluate(
 
       case "class":
         return make_class(env, statement, path);
+      case "record":
+        statement.body.push({
+          type: "func",
+          name: "constructor",
+          body: {
+            type: "prog",
+            prog: statement.vars.map((v) => ({
+              type: "statementExpr",
+              expr: {
+                type: "binary",
+                operator: "=",
+                left: {
+                  type: "binary",
+                  operator: ".",
+                  left: {
+                    type: "var",
+                    value: "this"
+                  },
+                  right: {
+                    type: "var",
+                    value: v.name
+                  }
+                },
+                right: {
+                  type: "var",
+                  value: v.name
+                }
+              }
+            }))
+          },
+          vars: statement.vars,
+          static: false
+        });
+        return make_class(
+          env,
+          {
+            type: "class",
+            body: statement.body,
+            extendsName: null,
+            name: statement.name
+          },
+          path
+        );
 
       case "import":
         await _import(statement, env, path);

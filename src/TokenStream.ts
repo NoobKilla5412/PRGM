@@ -32,6 +32,7 @@ export class TokenStream {
     "function",
     "object",
     "class",
+    "record",
     "static",
     "operator",
     "constructor",

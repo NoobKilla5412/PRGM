@@ -3,7 +3,7 @@ export declare class Environment {
     vars: {
         [key: string]: TODO;
     };
-    private parent;
+    parent: Environment | undefined;
     constructor(parent?: Environment);
     extend(): Environment;
     lookup(name: string): Environment | undefined;

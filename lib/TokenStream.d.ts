@@ -1,5 +1,5 @@
 import { InputStream } from "./InputStream";
-interface TokenTypes {
+export interface TokenTypes {
     num: number;
     str: string;
     kw: string;
@@ -18,6 +18,7 @@ export declare namespace TokenTypeChecks {
 export declare class TokenStream {
     private current;
     private keywords;
+    registerKeyword(keyword: string): void;
     private input;
     constructor(input: InputStream);
     private is_keyword;
@@ -41,4 +42,3 @@ export declare class TokenStream {
     eof(): boolean;
     croak(msg: string): Error;
 }
-export {};

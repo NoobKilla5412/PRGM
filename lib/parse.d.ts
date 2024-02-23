@@ -110,6 +110,13 @@ export interface Statements {
         body: ASTStatement;
         else?: ASTStatement;
     };
+    for: {
+        type: "for";
+        init: ASTExpression;
+        check: ASTExpression;
+        inc: ASTExpression;
+        body: ASTStatement;
+    };
     function: {
         type: "function";
         name: string;
@@ -122,9 +129,19 @@ export interface Statements {
         extendsName: string | null;
         body: ClassBody[keyof ClassBody][];
     };
+    record: {
+        type: "record";
+        name: string;
+        vars: Argument[];
+        body: ClassBody[keyof ClassBody][];
+    };
     import: {
         type: "import";
         value: Expressions["str"];
+    };
+    export: {
+        type: "export";
+        value: ASTStatement;
     };
 }
 export declare function convertToStatement(expr: ASTExpression): Statements["statementExpr"];

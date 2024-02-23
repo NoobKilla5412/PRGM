@@ -67,6 +67,7 @@ export interface Statements {
 
   function: { type: "function"; name: string; vars: Argument[]; body: ASTStatement };
   class: { type: "class"; name: string; extendsName: string | null; body: ClassBody[keyof ClassBody][] };
+  record: { type: "record"; name: string; vars: Argument[]; body: ClassBody[keyof ClassBody][] };
 
   import: { type: "import"; value: Expressions["str"] };
   export: { type: "export"; value: ASTStatement };
@@ -554,6 +555,99 @@ export function parse(str: string, onError = (err: Error) => {}, testingFlag = f
 
     return res;
   }
+
+  function parse_record() {
+    skip_kw("record");
+    let res: Statements["record"] = {
+      type: "record",
+      name: parse_varname(),
+      body: [],
+      vars: parse_arguments()
+    };
+
+    skip_punc("{");
+
+    while (!input.eof()) {
+      if (is_punc("}")) break;
+      if (is_kw("operator")) {
+        input.next();
+        let op = "";
+        if (is_op()) {
+          op = input.next()!.value.toString();
+        } else if (is_punc("[")) {
+          input.next();
+          skip_punc("]");
+          op = "[]";
+        } else {
+          op = parse_varname();
+        }
+        let vars = parse_arguments();
+        let body = parse_prog();
+        if (!body) {
+          body = convertToStatement(parse_expression()) as unknown as Statements["prog"];
+        }
+        res.body.push({
+          type: "operator",
+          op,
+          value: {
+            type: "function",
+            body,
+            vars,
+            name: ""
+          }
+        });
+      } /* else if (is_kw("constructor")) {
+        input.next();
+        res.body.push({
+          type: "func",
+          name: "constructor",
+          vars: parse_arguments(),
+          body: (() => {
+            let res: ASTStatement | undefined = parse_prog();
+            if (!res) res = convertToStatement(parse_expression());
+            return res as Statements["prog"];
+          })(),
+          static: false
+        });
+      } */ else {
+        let isStatic = false;
+        if (is_kw("static")) {
+          input.next();
+          isStatic = true;
+        }
+        let name = parse_varname();
+        let vars = is_punc("(") ? parse_arguments() : null;
+        if (vars) {
+          // We have a function
+          let body = parse_prog();
+          if (!body) body = convertToStatement(parse_expression()) as unknown as Statements["prog"];
+          res.body.push({
+            type: "func",
+            body,
+            name,
+            vars,
+            static: isStatic
+          });
+        } else {
+          // We have a property
+          skip_op("=");
+          let value = parse_expression();
+          res.body.push({
+            type: "prop",
+            name,
+            value,
+            static: isStatic
+          });
+          skip_punc(";");
+        }
+      }
+    }
+
+    skip_punc("}");
+
+    return res;
+  }
+
   function parse_bool(): Expressions["bool"] {
     return {
       type: "bool",
@@ -682,6 +776,7 @@ export function parse(str: string, onError = (err: Error) => {}, testingFlag = f
     // }
     else if (is_kw("function")) res = parse_function();
     else if (is_kw("class")) res = parse_class();
+    else if (is_kw("record")) res = parse_record();
     else if (is_kw("import")) res = parse_import();
     else if (is_kw("export")) res = parse_export();
     else if (is_kw("syntax")) {
