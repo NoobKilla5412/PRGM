@@ -1,3 +1,4 @@
+**/*.ini
 test.prgm
 
 ## Ignore Visual Studio temporary files, build results, and
