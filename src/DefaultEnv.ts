@@ -37,7 +37,7 @@ async function println(...data: any[]) {
   let res: string[] = [];
 
   for (const v of data) {
-    res.push(/* typeof v == "object" && v && v.__isString__ === true ? await v.toString() : */ v);
+    res.push(typeof v == "object" && v && v.__isString__ === true ? await v.toString() : v);
   }
 
   console.log(...res);

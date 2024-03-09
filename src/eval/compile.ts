@@ -2,7 +2,7 @@
 // import { homedir } from "os";
 // import { join } from "path";
 import { defaultEnv } from "../DefaultEnv";
-import { ASTStatement, Argument, Statements, parse } from "../parse";
+import { Statements } from "../parse";
 import { useUtils } from "../utils";
 // import { Environment } from "./Environment";
 

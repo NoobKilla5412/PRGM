@@ -1,5 +1,7 @@
 # Change Log
 
-## [Unreleased]
+## [1.4.0]
 
-### Fixed
+### Added
+
+- Custom syntax

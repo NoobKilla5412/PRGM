@@ -1,6 +1,6 @@
 {
   "name": "prgm-lang",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "This is my custom programming language for my OS.",
   "repository": {
     "type": "git",

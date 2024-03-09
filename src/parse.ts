@@ -3,8 +3,6 @@ import { InputStream } from "./InputStream";
 import { Token, TokenStream, TokenTypes } from "./TokenStream";
 import { clone } from "./utils";
 
-const FALSE: Expressions["bool"] = { type: "bool", value: false };
-
 export interface Argument {
   // type: Types["type"];
   name: string;
@@ -742,7 +740,7 @@ export function parse(str: string, onError = (err: Error) => {}, testingFlag = f
     if (!left) left = { type: "null" };
     return maybe_access(left);
   }
-  // function needsSemicolon(expr: ASTStatement) {
+  // function needsSemicolon(expr: Statement) {
   //   return (
   //     is_punc(";") ||
   //     (expr.type != "if" &&

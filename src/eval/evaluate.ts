@@ -1,15 +1,5 @@
 /* eslint-disable */
-import {
-  Argument,
-  ClassBody,
-  ClassUtils,
-  Expression,
-  Expressions,
-  Statement,
-  Statements,
-  convertToStatement,
-  parse
-} from "../parse";
+import { Argument, ClassBody, ClassUtils, Expression, Expressions, Statement, Statements, convertToStatement, parse } from "../parse";
 import { useUtils } from "../utils";
 import { Environment } from "./Environment";
 
@@ -244,10 +234,8 @@ export async function evaluate(
     }
   }
   async function overloadOp(op: string, a: any, b: any) {
-    if (typeof a == "object" && a != null && a[classOperators] && op in a[classOperators])
-      return await a[classOperators][op](b);
-    else if (typeof b == "object" && b != null && b[classOperators] && op in b[classOperators])
-      return await b[classOperators][op](a);
+    if (typeof a == "object" && a != null && a[classOperators] && op in a[classOperators]) return await a[classOperators][op](b);
+    else if (typeof b == "object" && b != null && b[classOperators] && op in b[classOperators]) return await b[classOperators][op](a);
     return undefined;
   }
 
@@ -316,22 +304,8 @@ export async function evaluate(
     return false;
   }
 
-  async function defineArgument(
-    names: Argument[],
-    scope: Environment,
-    env: Environment,
-    i: number,
-    args: IArguments,
-    path: string
-  ) {
-    scope.def(
-      names[i].name,
-      i < args.length && !isBadArg(args[i])
-        ? args[i]
-        : names[i].default === null
-        ? null
-        : await mainExp(names[i].default!, env, path)
-    );
+  async function defineArgument(names: Argument[], scope: Environment, env: Environment, i: number, args: IArguments, path: string) {
+    scope.def(names[i].name, i < args.length && !isBadArg(args[i]) ? args[i] : names[i].default === null ? null : await mainExp(names[i].default!, env, path));
   }
   function make_function(env: Environment, exp: Statements["function"] | Expressions["functionExpr"], path: string) {
     async function _function() {
@@ -544,11 +518,7 @@ export async function evaluate(
     return await main(convertToStatement(exp), env, path);
   }
 
-  async function evalCustomSyntax(
-    _expr: Statements["statementExpr"] | Expressions["customSyntaxRtn"],
-    env: Environment,
-    path: string
-  ) {
+  async function evalCustomSyntax(_expr: Statements["statementExpr"] | Expressions["customSyntaxRtn"], env: Environment, path: string) {
     let exp: Expressions["customSyntaxRtn"];
     if (_expr.type == "statementExpr" && _expr.expr.type == "customSyntaxRtn") {
       exp = _expr.expr;
@@ -611,11 +581,7 @@ export async function evaluate(
                 case "-=":
                 case "/=":
                 case "*=":
-                  const res = await overloadOp(
-                    exp.operator,
-                    await mainExp(exp.left, env, path),
-                    await mainExp(exp.right, env, path)
-                  );
+                  const res = await overloadOp(exp.operator, await mainExp(exp.left, env, path), await mainExp(exp.right, env, path));
                   if (res !== undefined) return res;
                   return await mainExp(
                     {
@@ -804,7 +770,7 @@ export async function evaluate(
 
       default:
         // @ts-ignore
-        throwGood(new Error(`I don't know how to main an expression of type "${statement.type}"`), pid);
+        throwGood(new Error(`I don't know how to evaluate an expression of type "${statement.type}"`), pid);
     }
   }
 
