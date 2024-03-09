@@ -1055,7 +1055,7 @@ export function parse(str: string, onError = (err: Error) => {}, testingFlag = f
         }
       }
 
-      if (tokens[0].type != "kw" && tokens[0].type != "var") {
+      if ("type" in tokens[0] && tokens[0].type != "kw" && tokens[0].type != "var") {
         input.croak('Cannot have type "' + tokens[0].type + '" at the start of a custom syntax.');
         return;
       }
