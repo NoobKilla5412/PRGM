@@ -2,25 +2,19 @@
 import { InputStream } from "./InputStream";
 
 export interface TokenTypes {
-  num: number;
-  str: string;
-  kw: string;
-  var: string;
-  punc: string;
-  op: string;
-  char: string;
+  num: { type: "num"; value: number };
+  str: { type: "str"; value: string };
+  kw: { type: "kw"; value: string };
+  var: { type: "var"; value: string };
+  punc: { type: "punc"; value: string };
+  op: { type: "op"; value: string };
+  char: { type: "char"; value: string };
 }
 
-export type Token<T extends keyof TokenTypes> = { type: T; value: TokenTypes[T] };
-
-export namespace TokenTypeChecks {
-  export function check<T extends keyof TokenTypes>(type: T, tok: Token<keyof TokenTypes> | undefined): tok is Token<T> {
-    return tok && tok.type == type ? true : false;
-  }
-}
+export type Token = TokenTypes[keyof TokenTypes];
 
 export class TokenStream {
-  private current: (Token<keyof TokenTypes> | undefined)[] = [];
+  private current: (Token | undefined)[] = [];
   private keywords = new Set([
     "if",
     "then",
@@ -67,10 +61,10 @@ export class TokenStream {
     return this.is_id_start(ch) || "?!-+/*%<>=0123456789".indexOf(ch) >= 0;
   }
   private is_op_char(ch: string) {
-    return ".+-*/%=&|<>!$".indexOf(ch) >= 0;
+    return ".+-*/%=&|<>!".indexOf(ch) >= 0;
   }
   private is_punc(ch: string) {
-    return ",:;(){}[]".indexOf(ch) >= 0;
+    return ",:;(){}[]$".indexOf(ch) >= 0;
   }
   private is_whitespace(ch: string) {
     return " \t\n\r".indexOf(ch) >= 0;
@@ -80,7 +74,7 @@ export class TokenStream {
     while (!this.input.eof() && predicate(this.input.peek())) str += this.input.next();
     return str;
   }
-  private read_number(): Token<"num"> {
+  private read_number(): TokenTypes["num"] {
     var has_dot = false;
     var number = this.read_while((ch) => {
       if (ch == ".") {
@@ -95,7 +89,7 @@ export class TokenStream {
       value: parseFloat(number)
     };
   }
-  private read_ident(): Token<"kw" | "var"> {
+  private read_ident(): TokenTypes["kw" | "var"] {
     var id = this.read_while(this.is_id.bind(this));
     return {
       type: this.is_keyword(id) ? "kw" : "var",
@@ -126,10 +120,10 @@ export class TokenStream {
     }
     return str;
   }
-  private read_string(): Token<"str"> {
+  private read_string(): TokenTypes["str"] {
     return { type: "str", value: this.read_escaped('"') };
   }
-  private read_char(): Token<"char"> {
+  private read_char(): TokenTypes["char"] {
     return { type: "char", value: this.read_escaped("'") };
   }
   private skip_comment() {
@@ -138,7 +132,7 @@ export class TokenStream {
     });
     this.input.next();
   }
-  private read_next(): Token<keyof TokenTypes> | undefined {
+  private read_next(): Token | undefined {
     this.read_while(this.is_whitespace);
     if (this.input.eof()) return;
     var ch = this.input.peek();
@@ -160,7 +154,9 @@ export class TokenStream {
         type: "op",
         value: this.read_while(this.is_op_char)
       };
-    this.input.croak(`Can't handle character: "${ch}" (Code: ${ch.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")})`);
+    this.input.croak(
+      `Can't handle character: "${ch}" (Code: ${ch.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")})`
+    );
     return;
   }
   public peek(offset?: number) {

@@ -16,3 +16,22 @@ Array.prototype.asyncMap = async function asyncMap<R>(cb: (value: any, index: nu
 };
 
 export function useUtils() {}
+
+export function clone<T>(obj: T): T {
+  if (typeof obj == "object" && obj) {
+    if ("clone" in obj && typeof obj.clone == "function") {
+      return obj.clone();
+    }
+
+    let res = {} as T;
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        const element = obj[key];
+        res[key] = clone(element);
+      }
+    }
+    return res;
+  } else {
+    return obj;
+  }
+}

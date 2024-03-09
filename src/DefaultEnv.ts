@@ -1,6 +1,6 @@
 import { Environment } from "./eval/Environment";
 import { evaluate } from "./eval/evaluate";
-import { ASTStatement, parse } from "./parse";
+import { Statement, parse } from "./parse";
 
 export function defaultEnv() {
   let res = new Environment();
@@ -32,7 +32,7 @@ async function println(...data: any[]) {
 }
 
 export function evalNewEnv(
-  prgm: string | ASTStatement,
+  prgm: string | Statement,
   path = "/",
   pid?: number,
   beforeExecution?: (env: Environment) => void,

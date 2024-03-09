@@ -1,5 +1,15 @@
 /* eslint-disable */
-import { ASTExpression, ASTStatement, Argument, ClassBody, ClassUtils, Expressions, Statements, convertToStatement, parse } from "../parse";
+import {
+  Argument,
+  ClassBody,
+  ClassUtils,
+  Expression,
+  Expressions,
+  Statement,
+  Statements,
+  convertToStatement,
+  parse
+} from "../parse";
 import { useUtils } from "../utils";
 import { Environment } from "./Environment";
 
@@ -54,7 +64,7 @@ interface PRGM_Class {
 }
 
 export async function evaluate(
-  exp: ASTStatement,
+  exp: Statement,
   exportEnv: Environment,
   pid: number,
   _path: string,
@@ -76,7 +86,7 @@ export async function evaluate(
   //   });
   // }
 
-  function throwGood(error: Error) {
+  function throwGood<T extends Error>(error: T) {
     onError(error);
     console.error(error);
     return error;
@@ -88,7 +98,7 @@ export async function evaluate(
    * @param var_ The property
    * @returns The property value
    */
-  async function applyVar(target: any, var_: ASTExpression, env: Environment, path: string): Promise<[target: any, res: any, key: string]> {
+  async function applyVar(target: any, var_: Expression, env: Environment, path: string): Promise<[target: any, res: any, key: string]> {
     if (typeof var_ == "string") {
       return [target, target[var_], var_];
     } else if (var_.type == "binary" && var_.operator == "." && var_.left.type == "var") {
@@ -134,7 +144,7 @@ export async function evaluate(
     if (typeof res == "function") res = res.bind(target);
     return res;
   }
-  async function setEvalDot(env: Environment, exp: Expressions["binary"], path: string, setValue: ASTExpression) {
+  async function setEvalDot(env: Environment, exp: Expressions["binary"], path: string, setValue: Expression) {
     let [target, res, key] = await applyVar(await mainExp(exp.left, env, path), exp.right, env, path);
     return (target[key] = await mainExp(setValue, env, path));
   }
@@ -229,20 +239,20 @@ export async function evaluate(
     }
   }
   async function overloadOp(op: string, a: any, b: any) {
-    if (typeof a == "object" && a != null && a[classOperators] && op in a[classOperators]) return await a[classOperators][op](b);
-    else if (typeof b == "object" && b != null && b[classOperators] && op in b[classOperators]) return await b[classOperators][op](a);
+    if (typeof a == "object" && a != null && a[classOperators] && op in a[classOperators])
+      return await a[classOperators][op](b);
+    else if (typeof b == "object" && b != null && b[classOperators] && op in b[classOperators])
+      return await b[classOperators][op](a);
     return undefined;
   }
 
-  async function apply_op(op: string, a: ASTExpression, b: ASTExpression, env: Environment, path: string) {
-    async function num(_x: ASTExpression) {
-      let x = await mainExp(_x, env, path);
+  async function apply_op(op: string, a: Expression, b: Expression, env: Environment, path: string) {
+    function num(x: any) {
       if (typeof x != "number") throwGood(new TypeError(`Expected number but got ${x}`));
       return x;
     }
-    async function div(_x: ASTExpression) {
-      let x = await mainExp(_x, env, path);
-      if ((await num(x)) == 0) throwGood(new Error("Divide by zero"));
+    function div(x: any) {
+      if (num(x) == 0) throwGood(new Error("Divide by zero"));
       return x;
     }
 
@@ -258,27 +268,27 @@ export async function evaluate(
     if (res) return res;
     switch (op) {
       case "+":
-        return (await num(a)) + (await num(b));
+        return num(_a) + num(_b);
       case "-":
-        return (await num(a)) - (await num(b));
+        return num(_a) - num(_b);
       case "*":
-        return (await num(a)) * (await num(b));
+        return num(_a) * num(_b);
       case "/":
-        return (await num(a)) / (await num(b));
+        return num(_a) / num(_b);
       case "%":
-        return (await num(a)) % (await num(b));
+        return num(_a) % num(_b);
       case "<":
-        return num(a) < num(b);
+        return num(_a) < num(_b);
       case ">":
-        return num(a) > num(b);
+        return num(_a) > num(_b);
       case "<=":
-        return num(a) <= num(b);
+        return num(_a) <= num(_b);
       case ">=":
-        return num(a) >= num(b);
+        return num(_a) >= num(_b);
       case "==":
-        return (await mainExp(a, env, path)) === (await mainExp(b, env, path));
+        return _a === _b;
       case "!=":
-        return (await mainExp(a, env, path)) !== (await mainExp(b, env, path));
+        return _a !== _b;
       case "[]":
         return evalDot(
           env,
@@ -286,7 +296,7 @@ export async function evaluate(
             type: "binary",
             left: a,
             operator: ".",
-            right: await mainExp(b, env, path)
+            right: b
           },
           path
         );
@@ -301,8 +311,22 @@ export async function evaluate(
     return false;
   }
 
-  async function defineArgument(names: Argument[], scope: Environment, env: Environment, i: number, args: IArguments, path: string) {
-    scope.def(names[i].name, i < args.length && !isBadArg(args[i]) ? args[i] : names[i].default === null ? null : await mainExp(names[i].default!, env, path));
+  async function defineArgument(
+    names: Argument[],
+    scope: Environment,
+    env: Environment,
+    i: number,
+    args: IArguments,
+    path: string
+  ) {
+    scope.def(
+      names[i].name,
+      i < args.length && !isBadArg(args[i])
+        ? args[i]
+        : names[i].default === null
+        ? null
+        : await mainExp(names[i].default!, env, path)
+    );
   }
   function make_function(env: Environment, exp: Statements["function"] | Expressions["functionExpr"], path: string) {
     async function _function() {
@@ -495,7 +519,7 @@ export async function evaluate(
 
   const asyncWhileLoops: ReturnType<typeof setInterval>[] = [];
 
-  async function call(func: Function, callArgs: ASTExpression[], env: Environment, path: string) {
+  async function call(func: Function, callArgs: Expression[], env: Environment, path: string) {
     if (typeof func != "function") {
       throwGood(new TypeError(`${JSON.stringify(func)} is not a function`));
       return false;
@@ -511,16 +535,47 @@ export async function evaluate(
     return res;
   }
 
-  async function mainExp(exp: ASTExpression, env: Environment, path: string): Promise<any> {
+  async function mainExp(exp: Expression, env: Environment, path: string): Promise<any> {
     return await main(convertToStatement(exp), env, path);
   }
 
-  async function main(statement: ASTStatement, env: Environment, path: string): Promise<any> {
+  async function evalCustomSyntax(
+    _expr: Statements["statementExpr"] | Expressions["customSyntaxRtn"],
+    env: Environment,
+    path: string
+  ) {
+    let exp: Expressions["customSyntaxRtn"];
+    if (_expr.type == "statementExpr" && _expr.expr.type == "customSyntaxRtn") {
+      exp = _expr.expr;
+    } else {
+      if (_expr.type != "customSyntaxRtn") throw throwGood(new Error("This should never happen"));
+      exp = _expr;
+    }
+
+    let synEnv = env.extend();
+
+    for (const name in exp.vars) {
+      if (Object.prototype.hasOwnProperty.call(exp.vars, name)) {
+        const element = exp.vars[name];
+        synEnv.def(name, async () => await main(element, env, path));
+      }
+    }
+
+    return await main(exp.value, synEnv, path);
+  }
+
+  async function main(statement: Statement, env: Environment, path: string): Promise<any> {
     switch (statement.type) {
+      case "customSyntaxRtn":
+        return await evalCustomSyntax(statement, env, path);
+
       case "statementExpr":
         {
           let exp = statement.expr;
           switch (exp.type) {
+            case "customSyntaxRtn":
+              return await evalCustomSyntax(exp, env, path);
+
             case "unary":
               switch (exp.operator) {
                 case "!": {
@@ -551,7 +606,11 @@ export async function evaluate(
                 case "-=":
                 case "/=":
                 case "*=":
-                  const res = await overloadOp(exp.operator, await mainExp(exp.left, env, path), await mainExp(exp.right, env, path));
+                  const res = await overloadOp(
+                    exp.operator,
+                    await mainExp(exp.left, env, path),
+                    await mainExp(exp.right, env, path)
+                  );
                   if (res !== undefined) return res;
                   return await mainExp(
                     {
@@ -608,7 +667,7 @@ export async function evaluate(
         break;
 
       case "prog": {
-        let val: any = false;
+        let val: any = null;
         // let exports: Types["export"][] = [];
         for (const _exp of statement.prog) {
           val = await main(_exp, env, path);
