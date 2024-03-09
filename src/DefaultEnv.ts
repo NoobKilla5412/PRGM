@@ -1,4 +1,3 @@
-import { readFileSync } from "fs";
 import { Environment } from "./eval/Environment";
 import { PRGM_String, evaluate } from "./eval/evaluate";
 import { Statement, parse } from "./parse";
@@ -25,7 +24,8 @@ export function defaultEnv() {
   });
   env.def("fetch", async (_file: PRGM_String) => {
     let file = await _file?.toString();
-    return readFileSync(file).toString();
+    if (typeof process != "undefined") return (await import("fs")).readFileSync(file).toString();
+    else return await (await fetch(file)).text();
   });
 
   return env;
