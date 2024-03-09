@@ -1,10 +1,7 @@
 import { readFileSync } from "fs";
-import _prompt from "prompt-sync";
 import { Environment } from "./eval/Environment";
 import { PRGM_String, evaluate } from "./eval/evaluate";
 import { Statement, parse } from "./parse";
-
-const prompt = _prompt();
 
 export function defaultEnv() {
   let env = new Environment();
@@ -22,8 +19,9 @@ export function defaultEnv() {
     return new Promise<void>((resolve) => setTimeout(resolve, delay));
   });
   env.def("input", async (_message?: PRGM_String) => {
+    if (typeof process != "undefined") throw new Error("Input is not supported in the console");
     let message = await _message?.toString();
-    return prompt({ ask: message });
+    return prompt(message);
   });
   env.def("fetch", async (_file: PRGM_String) => {
     let file = await _file?.toString();

@@ -1,3 +1,5 @@
+(* deprecated *)
+
 if = 'if', expression, '{' | 'then', statement, ';' | ( 'else', statement );
 do = 'do', statement, 'while', expression, ';';
 asyncWhile = "_while", expression, '{' | 'then', statement, ';' | ( 'else', statement );

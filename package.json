@@ -1,6 +1,6 @@
 {
   "name": "prgm-lang",
-  "version": "1.4.2",
+  "version": "1.4.4",
   "description": "This is my custom programming language for my OS.",
   "repository": {
     "type": "git",
@@ -21,12 +21,10 @@
   "license": "ISC",
   "devDependencies": {
     "@types/node": "^20.5.4",
-    "@types/prompt-sync": "^4.2.3",
     "@types/yargs": "^17.0.24",
     "typescript": "^5.3.3"
   },
   "dependencies": {
-    "prompt-sync": "^4.2.0",
     "yargs": "^17.7.2"
   }
 }

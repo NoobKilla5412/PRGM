@@ -1,5 +1,21 @@
 # Change Log
 
+## \[1.4.4]
+
+### Fixed
+
+- Bug in DefaultEnv
+
+## \[1.4.3]
+
+### Fixed
+
+- Bug in webpack in the CLI.
+
+### Removed
+
+- Removed `-i` from CLI.
+
 ## \[1.4.2]
 
 ### Fixed
