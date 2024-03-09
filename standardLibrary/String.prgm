@@ -7,7 +7,9 @@ class String {
     function valueIn() {
       __in((__array('v', 'a', 'l', 'u', 'e')).join(''), value);
     }
-    if (__typeof(value) == (__array('n', 'u', 'm', 'b', 'e', 'r')).join('')) {
+    if (__in((__array('s', 'p', 'l', 'i', 't')).join(''), value)) {
+      this.value = value.split('');
+    } else if (__typeof(value) == (__array('n', 'u', 'm', 'b', 'e', 'r')).join('')) {
       this.value = (value.toString()).split('');
     } else if (__typeof(value) == (__array('o', 'b', 'j', 'e', 'c', 't')).join('') && !valueIn()) {
       this.value = value;

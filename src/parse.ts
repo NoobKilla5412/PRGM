@@ -910,7 +910,8 @@ export function parse(str: string, onError = (err: Error) => {}, testingFlag = f
       let expr = parse_expression();
       if (expr) {
         // TODO: Fix the semi-colon error
-        if (requireSemiColon && expr.type != "customSyntaxRtn") skip_punc(";");
+        if (is_punc(";")) input.next();
+        // if (requireSemiColon && expr.type != "customSyntaxRtn") skip_punc(";");
         res = convertToStatement(expr);
       }
     }
@@ -959,13 +960,7 @@ export function parse(str: string, onError = (err: Error) => {}, testingFlag = f
                 skip_punc("$");
                 skip_punc(key[1]);
 
-                if (
-                  body[0].type == "expr" ||
-                  body[0].type == "stmt" ||
-                  body[0].type == "ident" ||
-                  body[0].type == "optional" ||
-                  body[0].type == "repetition"
-                ) {
+                if (body[0].type == "expr" || body[0].type == "stmt" || body[0].type == "ident" || body[0].type == "optional" || body[0].type == "repetition") {
                   return null;
                 }
                 return {

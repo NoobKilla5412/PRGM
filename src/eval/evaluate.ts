@@ -38,8 +38,12 @@ useUtils();
 // }
 
 export class PRGM_String {
-  async toString(): Promise<string> {
+  public async toString(): Promise<string> {
     return "";
+  }
+
+  public static async fromString(str: string, env: Environment) {
+    return env.get("String")(str.split(""));
   }
 }
 
@@ -69,9 +73,10 @@ export async function evaluate(
   pid: number,
   _path: string,
   onExit = (code: number) => {},
-  onError = (err: Error) => {}
+  onError = (err: Error) => {},
+  useExports = true
 ): Promise<any> {
-  const env = exportEnv.extend();
+  const env = useExports ? exportEnv.extend() : exportEnv;
 
   // async function syncAsyncLoop(loop: () => void | Promise<void>, cond: () => boolean | Promise<boolean>) {
   //   return new Promise<void>((resolve) => {

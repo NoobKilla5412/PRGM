@@ -1,16 +1,29 @@
-#! /usr/bin/env node
+#!/usr/bin/env node
 
+import { log } from "console";
 import { readFileSync, writeFileSync } from "fs";
+import _prompt from "prompt-sync";
 import { argv } from "yargs";
-import { evalNewEnv } from "./DefaultEnv";
-// import { compile } from "./eval/compile";
+import { defaultEnv, evalNewEnv } from "./DefaultEnv";
+import { evaluate } from "./eval/evaluate";
 import { parse } from "./parse";
+
+const prompt = _prompt();
 
 async function main() {
   if (argv instanceof Promise) {
     await argv;
   }
   if (argv instanceof Promise) return;
+
+  if (argv.i || argv.interactive) {
+    const env = defaultEnv();
+    let input = "";
+    while ((input = prompt({ ask: "> " })) != ".exit") {
+      log(await evaluate(parse(input), env, 0, ".", undefined, undefined, false));
+    }
+    return;
+  }
 
   let fileName = argv._[0].toString();
   const dir = argv.$0.split(/[/\\]/).slice(0, -1).join("/");

@@ -6,6 +6,6 @@ syntax (for ($expr{init}; $expr{check}; $expr{inc}) {$stmt{body}}) {
   }
 }
 
-syntax {declare $name{varname} = $expr{val} } {
+syntax {declare $name{varname} = $expr{val}} {
   global[varname()] = val();
 }

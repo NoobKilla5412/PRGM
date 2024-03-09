@@ -3,3 +3,4 @@ src/
 tsconfig.json
 webpack.config.js
 TODO.md
+.gitignore
