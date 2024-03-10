@@ -633,6 +633,9 @@ export async function evaluate(
             case "bool":
             case "num":
               return exp.value;
+            default:
+              // @ts-ignore
+              throwGood(new Error(`I don't know how to evaluate a statement of type "${exp.type}"`));
           }
         }
         break;
@@ -768,9 +771,14 @@ export async function evaluate(
         await main(statement, env.parent ?? env, path);
         return null;
 
+      // @ts-ignore
+      case "null":
+        console.warn(`Statement of type "null"`);
+        return null;
+
       default:
         // @ts-ignore
-        throwGood(new Error(`I don't know how to evaluate an expression of type "${statement.type}"`), pid);
+        throwGood(new Error(`I don't know how to evaluate a statement of type "${statement.type}"`));
     }
   }
 

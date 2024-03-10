@@ -298,25 +298,6 @@ export function parse(str: string, onError = (err: Error) => {}, testingFlag = f
     }
     return name.value;
   }
-  // function parse_varDeclaration(type: AST): Types["varDeclaration"] {
-  //   const name = parse_varname();
-  //   let value: AST;
-  //   if (is_punc("(")) {
-  //     let vars = parse_arguments();
-  //   }
-  //   if (!is_op("=")) {
-  //   } else {
-  //     skip_op("=");
-  //     value = parse_expression();
-  //   }
-  //   return {
-  //     type: "varDeclaration",
-  //     value: {
-  //       type: "normal",
-  //       name
-  //     }
-  //   };
-  // }
   function parse_if(): Statements["if"] {
     skip_kw("if");
     var cond = parse_expression();
@@ -883,12 +864,7 @@ export function parse(str: string, onError = (err: Error) => {}, testingFlag = f
     else if (is_kw("do")) res = parse_do();
     else if (is_kw("_while")) res = parse__while();
     else if (is_kw("while")) res = parse_while();
-    // else if (is_kw("for")) res = parse_for();
-    // let tok = input.peek();
-    // let tok1 = input.peek(1);
-    // if (tok?.type == "str" && tok1?.type == "op" && tok1.value == "=") {
-    //   return parse_varDeclaration();
-    // }
+    else if (is_kw("for")) res = parse_for();
     else if (is_kw("function")) res = parse_function();
     else if (is_kw("class")) res = parse_class();
     else if (is_kw("record")) res = parse_record();
