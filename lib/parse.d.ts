@@ -149,6 +149,10 @@ export interface Statements {
     customSyntaxRtn: CustomSyntaxRtn & {
         vars: CustomSyntaxVars;
     };
+    extend: {
+        type: "extend";
+        value: Statements["prog"];
+    };
 }
 export declare function convertToStatement(expr: Expression): Statements["statementExpr"];
 export type Statement = Statements[keyof Statements];

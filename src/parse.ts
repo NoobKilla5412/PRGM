@@ -74,6 +74,7 @@ export interface Statements {
   export: { type: "export"; value: Statement };
 
   customSyntaxRtn: CustomSyntaxRtn & { vars: CustomSyntaxVars };
+  extend: { type: "extend"; value: Statements["prog"] };
 
   // varDeclaration: { type: "varDeclaration"; name: string; value: ASTExpression };
 }
@@ -773,6 +774,14 @@ export function parse(str: string, onError = (err: Error) => {}, testingFlag = f
     });
   }
 
+  function parse_extend(): Statements["extend"] {
+    skip_kw("extend");
+    return {
+      type: "extend",
+      value: parse_prog() || { type: "prog", prog: [] }
+    };
+  }
+
   function parse_customSyntax(type: "expr"): Expression | null;
   function parse_customSyntax(type: "stmt"): Statement | null;
   function parse_customSyntax(type: "stmt" | "expr"): (CustomSyntaxRtn & { vars: CustomSyntaxVars }) | null {
@@ -870,6 +879,7 @@ export function parse(str: string, onError = (err: Error) => {}, testingFlag = f
     else if (is_kw("record")) res = parse_record();
     else if (is_kw("import")) res = parse_import();
     else if (is_kw("export")) res = parse_export();
+    else if (is_kw("extend")) res = parse_extend();
     else if (is_kw("syntax")) {
       return parse_syntaxDef();
       // res = { type: "statementExpr", expr: { type: "null" } };
@@ -1031,8 +1041,8 @@ export function parse(str: string, onError = (err: Error) => {}, testingFlag = f
         }
       }
 
-      if ("type" in tokens[0] && tokens[0].type != "kw" && tokens[0].type != "var") {
-        input.croak('Cannot have type "' + tokens[0].type + '" at the start of a custom syntax.');
+      if (!tokens || !tokens[0] || ("type" in tokens[0] && tokens[0].type != "kw" && tokens[0].type != "var")) {
+        input.croak('Cannot have type "' + tokens?.[0]?.type + '" at the start of a custom syntax.');
         return;
       }
 

@@ -139,8 +139,8 @@ export async function evaluate(
     if (typeof res == "function") res = res.bind(target);
     return res;
   }
-  async function setEvalDot(env: Environment, exp: Expressions["binary"], path: string, setValue: Expression) {
-    let [target, res, key] = await applyVar(await mainExp(exp.left, env, path), exp.right, env, path);
+  async function setEvalDot(env: Environment, exp: Expressions["binary"], path: string, setValue: Expression, leftEnv?: Environment) {
+    let [target, res, key] = await applyVar(await mainExp(exp.left, leftEnv ?? env, path), exp.right, env, path);
     return (target[key] = await mainExp(setValue, env, path));
   }
 
@@ -766,10 +766,31 @@ export async function evaluate(
         await _import(statement, env, path);
         return null;
       case "export":
-        if (!env.parent) throwGood(new TypeError("No parent env"));
+        if (!env.parent) throw throwGood(new TypeError("No parent env"));
 
-        await main(statement, env.parent ?? env, path);
+        const stmt = statement.value;
+
+        if (stmt.type == "statementExpr" && stmt.expr.type == "binary" && stmt.expr.operator == "=") {
+          const exp = stmt.expr;
+          if (exp.left.type != "var" && !(exp.left.type == "binary" && exp.left.operator == ".")) {
+            throwGood(new TypeError(`Cannot assign to ${JSON.stringify(exp.left)}`));
+            return null;
+          }
+          if (exp.left.type == "var") return env.parent.set(exp.left.value, await mainExp(exp.right, env, path));
+          else {
+            // This is for assignment to a property of an object (`target`).
+            // console.log(exp.left);
+            return setEvalDot(env, exp.left, path, exp.right, env.parent);
+            // let [target, , value] = applyVar(await mainExp(exp.left.left, env, path), exp.left.right);
+            // return (target[value] = await mainExp(exp.right, env, path));
+          }
+        }
+        await main(statement.value, env.parent ?? env, path);
         return null;
+
+      case "extend":
+        const extendEnv = env.extend();
+        return await main(statement.value, extendEnv, path);
 
       // @ts-ignore
       case "null":

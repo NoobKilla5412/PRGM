@@ -30,6 +30,7 @@ export class TokenStream {
     "static",
     "operator",
     "constructor",
+    "extend",
     "extends",
     "import",
     "export",
