@@ -665,25 +665,6 @@ export async function evaluate(
         // await awaitDeletion(doWhileLoops, value);
         return false;
       }
-      case "_while": {
-        let i = 0;
-        const interval = setInterval(async () => {
-          const cond = await mainExp(statement.cond, env, path);
-
-          if (cond === false && statement.else && i == 0) {
-            await main(statement.else, env, path);
-            clearInterval(interval);
-          } else if (cond) {
-            await main(statement.body, env, path);
-            i++;
-          } else {
-            clearInterval(interval);
-          }
-          i++;
-        }, 1000 / 60);
-        asyncWhileLoops.push(interval);
-        break;
-      }
       case "while": {
         /* if (testingFlag)
         await syncAsyncLoop(

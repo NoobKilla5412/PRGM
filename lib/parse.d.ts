@@ -101,12 +101,6 @@ export interface Statements {
         cond: Expression;
         body: Statement;
     };
-    _while: {
-        type: "_while";
-        cond: Expression;
-        body: Statement;
-        else?: Statement;
-    };
     while: {
         type: "while";
         cond: Expression;

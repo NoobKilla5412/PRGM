@@ -20,7 +20,6 @@ export class TokenStream {
     "then",
     "else",
     "do",
-    "_while",
     "while",
     "for",
     "function",

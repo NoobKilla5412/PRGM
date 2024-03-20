@@ -62,7 +62,6 @@ export interface Statements {
   prog: { type: "prog"; prog: Statement[] };
   if: { type: "if"; cond: Expression; then: Statement; else?: Statement };
   do: { type: "do"; cond: Expression; body: Statement };
-  _while: { type: "_while"; cond: Expression; body: Statement; else?: Statement };
   while: { type: "while"; cond: Expression; body: Statement; else?: Statement };
   for: { type: "for"; init: Expression; check: Expression; inc: Expression; body: Statement };
 
@@ -361,22 +360,6 @@ export function parse(str: string, onError = (err: Error) => {}, testingFlag = f
       inc,
       body
     };
-  }
-  function parse__while(): Statements["_while"] {
-    skip_kw("_while");
-    let cond = parse_expression();
-    if (!is_punc("{")) skip_kw("then");
-    let body = parse_statement();
-    let ret: Statements["_while"] = {
-      type: "_while",
-      cond,
-      body
-    };
-    if (is_kw("else")) {
-      input.next();
-      ret.else = parse_statement();
-    }
-    return ret;
   }
   function parse_export(): Statements["export"] {
     skip_kw("export");
@@ -866,12 +849,16 @@ export function parse(str: string, onError = (err: Error) => {}, testingFlag = f
 
     let res: Statement;
 
+    let _res = parse_customSyntax("stmt");
+    if (_res) {
+      res = _res;
+    }
+
     if (is_punc("{")) {
       let _res = parse_prog();
       if (_res) res = _res;
     } else if (is_kw("if")) res = parse_if();
     else if (is_kw("do")) res = parse_do();
-    else if (is_kw("_while")) res = parse__while();
     else if (is_kw("while")) res = parse_while();
     else if (is_kw("for")) res = parse_for();
     else if (is_kw("function")) res = parse_function();
@@ -883,11 +870,6 @@ export function parse(str: string, onError = (err: Error) => {}, testingFlag = f
     else if (is_kw("syntax")) {
       return parse_syntaxDef();
       // res = { type: "statementExpr", expr: { type: "null" } };
-    } else {
-      let _res = parse_customSyntax("stmt");
-      if (_res) {
-        res = _res;
-      }
     }
 
     if (typeof res! == "undefined") {
@@ -1041,7 +1023,7 @@ export function parse(str: string, onError = (err: Error) => {}, testingFlag = f
         }
       }
 
-      if (!tokens || !tokens[0] || ("type" in tokens[0] && tokens[0].type != "kw" && tokens[0].type != "var")) {
+      if (!tokens || !tokens[0] || ("type" in tokens[0] && tokens[0].type != "kw" && tokens[0].type != "var" && tokens[0].type != "op")) {
         input.croak('Cannot have type "' + tokens?.[0]?.type + '" at the start of a custom syntax.');
         return;
       }

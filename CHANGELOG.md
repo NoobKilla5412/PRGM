@@ -1,5 +1,15 @@
 # Change Log
 
+## \[2.0.0]
+
+### Removed
+
+- `_while` loop
+
+### Changed
+
+- Made the priority of custom syntaxes higher.
+
 ## \[1.4.4]
 
 ### Fixed
