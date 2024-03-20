@@ -673,13 +673,15 @@ export async function evaluate(
         );
       else */
         const whileEnv = env.extend();
+        let i = 0;
 
-        if (statement.else && (await mainExp(statement.cond, whileEnv, path)) === false) {
+        while ((await mainExp(statement.cond, whileEnv, path)) !== false) {
+          await main(statement.body, whileEnv, path);
+          i++;
+        }
+        if (i == 0 && statement.else) {
           await main(statement.else, whileEnv, path);
-        } else
-          while ((await mainExp(statement.cond, whileEnv, path)) !== false) {
-            await main(statement.body, whileEnv, path);
-          }
+        }
 
         return null;
       }
